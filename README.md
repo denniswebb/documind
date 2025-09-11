@@ -258,6 +258,4 @@ MIT License - see [LICENSE](./LICENSE) for details.
 
 ---
 
-**Built with ❤️ by [Dennis Webb](https://denniswebb.dev)**
-
 *Making documentation as natural as having a conversation with your AI assistant*
