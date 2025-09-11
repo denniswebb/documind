@@ -1,0 +1,79 @@
+# DocuMind System - Cursor Rules
+
+This repository uses DocuMind for documentation management.
+
+## Documentation Commands
+
+Available slash commands:
+- /document bootstrap - Generate complete documentation
+- /document expand [concept] - Expand specific documentation  
+- /document update [section] - Update existing sections
+- /document analyze [integration] - Document integrations
+- /document index - Regenerate navigation
+- /document search [query] - Find documentation
+
+## Natural Language Recognition
+
+Treat these as documentation commands:
+- "Document this [feature]" → /document expand [feature]
+- "Update the [guide]" → /document update [guide]  
+- "How do we use [service]?" → /document analyze [service]
+- "Create docs for [component]" → /document expand [component]
+
+## Rules
+
+When processing /document commands, follow DocuMind system instructions:
+
+1. **Living Documentation**: Documentation evolves with code
+2. **Incremental Updates**: Prefer targeted updates over full regeneration
+3. **Context Preservation**: Never lose existing structure or customizations
+4. **Smart Placement**: Add content where it logically belongs
+5. **Consistency**: Maintain consistent style and cross-references
+
+### Documentation Structure
+- All docs in `/docs/` directory
+- Use structured approach: getting-oriented/, core-concepts/, integrations/, development/
+- Always update master index when adding files
+- Use relative links for internal references
+
+### Critical Rules
+- NEVER modify `.documind/` directory contents
+- ALWAYS preserve existing navigation and structure
+- ALWAYS check for existing docs before creating new ones
+- ALWAYS use templates from `.documind/templates/` for new content
+- ALWAYS update `/docs/README.md` when adding new sections
+
+### Templates Available
+- concept.md - For core concepts
+- integration.md - For external services
+- architecture.md - For system design
+- getting-started.md - For setup guides
+- api-reference.md - For API documentation
+
+Follow these rules strictly when executing any /document command.
+
+## PROACTIVE MAINTENANCE (Required)
+
+AUTOMATICALLY suggest documentation updates when:
+
+### Code Changes
+- New features: "Should I document this in `/document expand concept '[name]'`?"
+- Architecture changes: "Architecture docs need updating. Run `/document update architecture`?"
+- New integrations: "This [service] should be documented. Run `/document analyze integration '[service]'`?"
+- Config changes: "Setup guide needs updating for this change."
+
+### Code Questions  
+- Undocumented concepts: "This isn't documented. Should I add it to concepts?"
+- Outdated info: "Docs show X but code does Y. Documentation needs updating."
+- Missing patterns: "This pattern should be documented."
+- Integration gaps: "I see [service] usage but it's not documented."
+
+### Templates
+💡 **Documentation Gap**: [Concept] needs documentation
+📝 **Suggestion**: `/document expand concept '[name]'`
+
+⚠️ **Outdated Info**: [Section] doesn't match code  
+📝 **Suggestion**: `/document update section '[name]'`
+
+🔌 **New Integration**: [Service] found but not documented
+📝 **Suggestion**: `/document analyze integration '[service]'`

@@ -1,0 +1,50 @@
+{
+  "name": "@documind/core",
+  "version": "1.0.0",
+  "description": "IDE-native documentation system with AI-powered slash commands",
+  "main": "index.js",
+  "bin": {
+    "documind": "./cli.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "install": "node .documind/scripts/install.js",
+    "update": "node .documind/scripts/update.js",
+    "version": "node -e \"console.log(require('./package.json').version)\""
+  },
+  "keywords": [
+    "documentation",
+    "ai",
+    "slash-commands",
+    "ide",
+    "cursor",
+    "copilot",
+    "claude",
+    "gemini",
+    "markdown",
+    "docs"
+  ],
+  "author": "Dennis Webb <dennis@denniswebb.dev>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/denniswebb/documind.git"
+  },
+  "homepage": "https://github.com/denniswebb/documind#readme",
+  "bugs": {
+    "url": "https://github.com/denniswebb/documind/issues"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "files": [
+    ".documind/",
+    "cli.js",
+    "index.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}
