@@ -105,6 +105,16 @@ class DocuMindInstaller {
       path.join(this.repoRoot, 'CLAUDE.md'), 
       content
     );
+    
+    // Also register the /document command
+    await this.registerClaudeCommands();
+  }
+  
+  async registerClaudeCommands() {
+    // Use the CommandGenerator to create the actual slash commands
+    const CommandGenerator = require('./generate-commands.js');
+    const generator = new CommandGenerator();
+    await generator.generateClaudeCommands();
   }
   
   async generateCursorInstructions() {
