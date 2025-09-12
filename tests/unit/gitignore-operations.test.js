@@ -5,6 +5,7 @@ import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'url';
 
 const execFileAsync = promisify(execFile);
 
@@ -13,8 +14,9 @@ describe('Gitignore Operations Tests', () => {
   let originalCwd;
 
   beforeEach(async () => {
-    // Save original working directory
-    originalCwd = process.cwd() || path.resolve('.');
+    // Get project root from this test file location
+    const testFileDir = path.dirname(fileURLToPath(import.meta.url));
+    originalCwd = path.resolve(testFileDir, '..', '..');
     
     // Create a unique temporary directory for each test
     testDir = await fs.mkdtemp(path.join(tmpdir(), 'documind-gitignore-test-'));
