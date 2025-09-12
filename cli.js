@@ -1,10 +1,37 @@
 #!/usr/bin/env node
 
-const fs = require('fs').promises;
-const path = require('path');
+import { promises as fs } from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 class DocuMindCLI {
   constructor() {
+    // 80s Vaporwave ANSI colors
+    this.colors = {
+      reset: '\x1b[0m',
+      bright: '\x1b[1m',
+      
+      // Vaporwave palette
+      neonPink: '\x1b[95m',        // Bright magenta
+      neonCyan: '\x1b[96m',        // Bright cyan  
+      neonPurple: '\x1b[35m',      // Magenta
+      electricBlue: '\x1b[94m',    // Bright blue
+      hotPink: '\x1b[91m',         // Bright red
+      synthWave: '\x1b[93m',       // Bright yellow
+      
+      // Standard colors for compatibility
+      brightMagenta: '\x1b[95m',
+      brightCyan: '\x1b[96m',
+      brightBlue: '\x1b[94m',
+      brightWhite: '\x1b[97m',
+      white: '\x1b[37m',
+      magenta: '\x1b[35m',
+      cyan: '\x1b[36m'
+    };
+
     this.commands = {
       'init': this.init.bind(this),
       'update': this.update.bind(this),
@@ -38,13 +65,13 @@ class DocuMindCLI {
   }
 
   async init(args) {
-    console.log('🧠 DocuMind - IDE-Native Documentation System');
+    this.showVaporwaveLogo();
     console.log('');
 
     const targetDir = args[0] || process.cwd();
     const fullPath = path.resolve(targetDir);
     
-    console.log(`📁 Initializing DocuMind in: ${fullPath}`);
+    console.log(`${this.colors.neonPink}📁 Initializing DocuMind in:${this.colors.reset} ${this.colors.neonCyan}${fullPath}${this.colors.reset}`);
     console.log('');
 
     try {
@@ -62,7 +89,7 @@ class DocuMindCLI {
       await this.copyDocuMindCore();
       
       // Run the installation script
-      const DocuMindInstaller = require(path.join(__dirname, '.documind/scripts/install.js'));
+      const { default: DocuMindInstaller } = await import(path.join(process.cwd(), '.documind/scripts/install.js'));
       const installer = new DocuMindInstaller();
       await installer.install();
 
@@ -73,7 +100,7 @@ class DocuMindCLI {
   }
 
   async update(args) {
-    const DocuMindUpdater = require(path.join(process.cwd(), '.documind/scripts/update.js'));
+    const { default: DocuMindUpdater } = await import(path.join(process.cwd(), '.documind/scripts/update.js'));
     const updater = new DocuMindUpdater();
     
     if (args[0] === '--local' && args[1]) {
@@ -84,7 +111,7 @@ class DocuMindCLI {
   }
 
   async register(args) {
-    console.log('🔧 Registering DocuMind commands...');
+    console.log(`${this.colors.electricBlue}🔧 Registering DocuMind commands...${this.colors.reset}`);
     console.log('');
 
     try {
@@ -95,40 +122,40 @@ class DocuMindCLI {
         process.exit(1);
       }
 
-      const CommandGenerator = require(path.join(process.cwd(), '.documind/scripts/generate-commands.js'));
+      const { default: CommandGenerator } = await import(path.join(process.cwd(), '.documind/scripts/generate-commands.js'));
       const generator = new CommandGenerator();
       
       // Check for specific tool flag
       const tool = args[0];
       if (tool && tool.startsWith('--')) {
         const toolName = tool.substring(2); // Remove '--' prefix
-        console.log(`📱 Registering commands for: ${toolName}`);
+        console.log(`${this.colors.neonPink}📱 Registering commands for: ${this.colors.neonCyan}${toolName}${this.colors.reset}`);
         const success = await generator.generateCommandsForTool(toolName);
         if (success) {
-          console.log('✅ Command registration completed!');
+          console.log(`${this.colors.electricBlue}✅ Command registration completed!${this.colors.reset}`);
         } else {
-          console.error(`❌ Failed to register commands for ${toolName}`);
+          console.error(`${this.colors.neonPink}❌ Failed to register commands for ${toolName}${this.colors.reset}`);
           process.exit(1);
         }
       } else {
         // Register for all detected tools
-        console.log('📱 Detecting AI tools and registering commands...');
+        console.log(`${this.colors.neonPink}📱 Detecting AI tools and registering commands...${this.colors.reset}`);
         const tools = await generator.detectAITools();
-        console.log(`   Found: ${tools.join(', ')}`);
+        console.log(`   ${this.colors.neonCyan}Found: ${this.colors.brightWhite}${tools.join(', ')}${this.colors.reset}`);
         
         for (const tool of tools) {
           await generator.generateCommandsForTool(tool);
         }
         
-        console.log('✅ Command registration completed for all tools!');
+        console.log(`${this.colors.electricBlue}✅ Command registration completed for all tools!${this.colors.reset}`);
       }
       
       console.log('');
-      console.log('🎯 Commands are now available:');
-      console.log('   /document - Flexible documentation command');
-      console.log('   /document bootstrap - Generate complete docs');
-      console.log('   /document expand [concept] - Document concepts');
-      console.log('   /document [free-form request] - Ask anything!');
+      console.log(`${this.colors.neonCyan}🎯 Commands are now available:${this.colors.reset}`);
+      console.log(`   ${this.colors.electricBlue}/document${this.colors.reset} - ${this.colors.brightWhite}Flexible documentation command${this.colors.reset}`);
+      console.log(`   ${this.colors.electricBlue}/document bootstrap${this.colors.reset} - ${this.colors.brightWhite}Generate complete docs${this.colors.reset}`);
+      console.log(`   ${this.colors.electricBlue}/document expand [concept]${this.colors.reset} - ${this.colors.brightWhite}Document concepts${this.colors.reset}`);
+      console.log(`   ${this.colors.electricBlue}/document [free-form request]${this.colors.reset} - ${this.colors.brightWhite}Ask anything!${this.colors.reset}`);
 
     } catch (error) {
       console.error('❌ Command registration failed:', error.message);
@@ -196,13 +223,31 @@ class DocuMindCLI {
   }
 
   async version() {
-    const packageJson = require('./package.json');
-    console.log(`DocuMind v${packageJson.version}`);
+    const packageJson = JSON.parse(await fs.readFile(path.join(__dirname, 'package.json'), 'utf8'));
+    console.log(`${this.colors.neonPink}DocuMind${this.colors.reset} ${this.colors.neonCyan}v${packageJson.version}${this.colors.reset}`);
+  }
+
+  showVaporwaveLogo() {
+    // Blue borders, "Docu" in magenta, "Mind" in cyan
+    const logo = `${this.colors.electricBlue}▐▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▌${this.colors.reset}
+${this.colors.electricBlue}▐${this.colors.reset}   ${this.colors.neonPink}██████████${this.colors.reset}                                ${this.colors.neonCyan}██████   ██████${this.colors.reset}  ${this.colors.neonCyan}███${this.colors.reset}                 ${this.colors.neonCyan}█████${this.colors.reset}  ${this.colors.electricBlue}▌${this.colors.reset}
+${this.colors.electricBlue}▐${this.colors.reset}  ${this.colors.neonPink}░░███░░░░███${this.colors.reset}                              ${this.colors.neonCyan}░░██████ ██████${this.colors.reset}  ${this.colors.neonCyan}░░░${this.colors.reset}                 ${this.colors.neonCyan}░░███${this.colors.reset}   ${this.colors.electricBlue}▌${this.colors.reset}
+${this.colors.electricBlue}▐${this.colors.reset}   ${this.colors.neonPink}░███   ░░███${this.colors.reset}  ${this.colors.neonCyan}██████   ██████${this.colors.reset}  ${this.colors.neonCyan}█████ ████${this.colors.reset} ${this.colors.neonCyan}░███░█████░███${this.colors.reset}  ${this.colors.neonCyan}████${this.colors.reset}  ${this.colors.neonCyan}████████${this.colors.reset}    ${this.colors.neonCyan}███████${this.colors.reset}   ${this.colors.electricBlue}▌${this.colors.reset}
+${this.colors.electricBlue}▐${this.colors.reset}   ${this.colors.neonPink}░███    ░███${this.colors.reset} ${this.colors.neonCyan}███░░███ ███░░███${this.colors.reset}${this.colors.neonCyan}░░███ ░███${this.colors.reset}  ${this.colors.neonCyan}░███░░███ ░███${this.colors.reset} ${this.colors.neonCyan}░░███${this.colors.reset} ${this.colors.neonCyan}░░███░░███${this.colors.reset}  ${this.colors.neonCyan}███░░███${this.colors.reset}   ${this.colors.electricBlue}▌${this.colors.reset}
+${this.colors.electricBlue}▐${this.colors.reset}   ${this.colors.neonPink}░███    ░███${this.colors.reset}${this.colors.neonCyan}░███ ░███░███ ░░░${this.colors.reset}  ${this.colors.neonCyan}░███ ░███${this.colors.reset}  ${this.colors.neonCyan}░███ ░░░  ░███${this.colors.reset}  ${this.colors.neonCyan}░███${this.colors.reset}  ${this.colors.neonCyan}░███ ░███${this.colors.reset} ${this.colors.neonCyan}░███ ░███${this.colors.reset}   ${this.colors.electricBlue}▌${this.colors.reset}
+${this.colors.electricBlue}▐${this.colors.reset}   ${this.colors.neonPink}░███    ███${this.colors.reset} ${this.colors.neonCyan}░███ ░███░███  ███${this.colors.reset} ${this.colors.neonCyan}░███ ░███${this.colors.reset}  ${this.colors.neonCyan}░███      ░███${this.colors.reset}  ${this.colors.neonCyan}░███${this.colors.reset}  ${this.colors.neonCyan}░███ ░███${this.colors.reset} ${this.colors.neonCyan}░███ ░███${this.colors.reset}   ${this.colors.electricBlue}▌${this.colors.reset}
+${this.colors.electricBlue}▐${this.colors.reset}   ${this.colors.neonPink}██████████${this.colors.reset}  ${this.colors.neonCyan}░░██████ ░░██████${this.colors.reset}  ${this.colors.neonCyan}░░████████${this.colors.reset} ${this.colors.neonCyan}█████     █████${this.colors.reset} ${this.colors.neonCyan}█████${this.colors.reset} ${this.colors.neonCyan}████ █████${this.colors.reset}${this.colors.neonCyan}░░████████${this.colors.reset}  ${this.colors.electricBlue}▌${this.colors.reset}
+${this.colors.electricBlue}▐${this.colors.reset}  ${this.colors.neonPink}░░░░░░░░░░${this.colors.reset}    ${this.colors.neonCyan}░░░░░░   ░░░░░░${this.colors.reset}    ${this.colors.neonCyan}░░░░░░░░${this.colors.reset} ${this.colors.neonCyan}░░░░░     ░░░░░${this.colors.reset} ${this.colors.neonCyan}░░░░░${this.colors.reset} ${this.colors.neonCyan}░░░░ ░░░░░${this.colors.reset}  ${this.colors.neonCyan}░░░░░░░░${this.colors.reset}   ${this.colors.electricBlue}▌${this.colors.reset}
+${this.colors.electricBlue}▐▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▌${this.colors.reset}
+
+                    ${this.colors.electricBlue}▓▓▓${this.colors.reset} ${this.colors.neonCyan}◆ IDE-Native Documentation System ◆${this.colors.reset} ${this.colors.electricBlue}▓▓▓${this.colors.reset}`;
+
+    console.log(logo);
   }
 
   async help() {
+    this.showVaporwaveLogo();
     console.log(`
-🧠 DocuMind - IDE-Native Documentation System
 
 USAGE:
   documind <command> [options]
@@ -288,9 +333,9 @@ https://github.com/denniswebb/documind
 }
 
 // Run CLI
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   const cli = new DocuMindCLI();
   cli.run();
 }
 
-module.exports = DocuMindCLI;
+export default DocuMindCLI;
