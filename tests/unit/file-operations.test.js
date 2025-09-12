@@ -26,7 +26,9 @@ describe('File Operations Tests', () => {
 
   afterEach(async () => {
     // Restore original working directory
-    process.chdir(originalCwd);
+    if (originalCwd) {
+      process.chdir(originalCwd);
+    }
     
     // Clean up test directory
     try {

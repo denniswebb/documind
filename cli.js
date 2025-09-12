@@ -68,8 +68,16 @@ class DocuMindCLI {
     this.showVaporwaveLogo();
     console.log('');
 
+    // DEBUG: Log all the values we're working with
+    console.log('🐛 DEBUG: args[0]:', args[0]);
+    console.log('🐛 DEBUG: process.cwd():', process.cwd());
+    console.log('🐛 DEBUG: path.resolve("."):', path.resolve('.'));
+    
     const targetDir = args[0] || process.cwd() || path.resolve('.');
     const fullPath = path.resolve(targetDir);
+    
+    console.log('🐛 DEBUG: targetDir:', targetDir);
+    console.log('🐛 DEBUG: fullPath:', fullPath);
     
     // Ensure we have a valid path before using it
     if (!fullPath || fullPath === 'undefined') {
