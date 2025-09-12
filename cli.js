@@ -68,20 +68,25 @@ class DocuMindCLI {
     this.showVaporwaveLogo();
     console.log('');
 
-    // DEBUG: Log all the values we're working with
-    console.log('🐛 DEBUG: args[0]:', args[0]);
-    console.log('🐛 DEBUG: process.cwd():', process.cwd());
-    console.log('🐛 DEBUG: path.resolve("."):', path.resolve('.'));
+    // More robust path resolution
+    let targetDir;
+    if (args[0]) {
+      targetDir = args[0];
+    } else {
+      const cwd = process.cwd();
+      // Handle case where process.cwd() returns literal "undefined" string
+      if (!cwd || cwd === 'undefined' || typeof cwd !== 'string') {
+        targetDir = path.resolve('.');
+      } else {
+        targetDir = cwd;
+      }
+    }
     
-    const targetDir = args[0] || process.cwd() || path.resolve('.');
     const fullPath = path.resolve(targetDir);
     
-    console.log('🐛 DEBUG: targetDir:', targetDir);
-    console.log('🐛 DEBUG: fullPath:', fullPath);
-    
-    // Ensure we have a valid path before using it
-    if (!fullPath || fullPath === 'undefined') {
-      throw new Error('Unable to determine target directory');
+    // Final safety check
+    if (!fullPath || fullPath.includes('undefined') || fullPath === 'undefined') {
+      throw new Error(`Unable to determine target directory. Resolved path: ${fullPath}`);
     }
     
     console.log(`${this.colors.neonPink}📁 Initializing DocuMind in:${this.colors.reset} ${this.colors.neonCyan}${fullPath}${this.colors.reset}`);
@@ -102,7 +107,9 @@ class DocuMindCLI {
       await this.copyDocuMindCore();
       
       // Run the installation script
-      const { default: DocuMindInstaller } = await import(path.join((process.cwd() || path.resolve('.')), '.documind/scripts/install.js'));
+      const cwd1 = process.cwd();
+      const workingDir1 = (!cwd1 || cwd1 === 'undefined') ? path.resolve('.') : cwd1;
+      const { default: DocuMindInstaller } = await import(path.join(workingDir1, '.documind/scripts/install.js'));
       const installer = new DocuMindInstaller();
       await installer.install();
 
@@ -113,7 +120,9 @@ class DocuMindCLI {
   }
 
   async update(args) {
-    const { default: DocuMindUpdater } = await import(path.join((process.cwd() || path.resolve('.')), '.documind/scripts/update.js'));
+    const cwd = process.cwd();
+    const workingDir = (!cwd || cwd === 'undefined') ? path.resolve('.') : cwd;
+    const { default: DocuMindUpdater } = await import(path.join(workingDir, '.documind/scripts/update.js'));
     const updater = new DocuMindUpdater();
     
     if (args[0] === '--local' && args[1]) {
@@ -135,7 +144,9 @@ class DocuMindCLI {
         process.exit(1);
       }
 
-      const { default: CommandGenerator } = await import(path.join((process.cwd() || path.resolve('.')), '.documind/scripts/generate-commands.js'));
+      const cwd2 = process.cwd();
+      const workingDir2 = (!cwd2 || cwd2 === 'undefined') ? path.resolve('.') : cwd2;
+      const { default: CommandGenerator } = await import(path.join(workingDir2, '.documind/scripts/generate-commands.js'));
       const generator = new CommandGenerator();
       
       // Check for specific tool flag
@@ -196,12 +207,14 @@ class DocuMindCLI {
       }
 
       // Create .github/workflows directory
-      const workflowsDir = path.join((process.cwd() || path.resolve('.')), '.github', 'workflows');
+      const cwd3 = process.cwd();
+      const workingDir3 = (!cwd3 || cwd3 === 'undefined') ? path.resolve('.') : cwd3;
+      const workflowsDir = path.join(workingDir3, '.github', 'workflows');
       await fs.mkdir(workflowsDir, { recursive: true });
       console.log('  ✓ Created .github/workflows directory');
 
       // Read the workflow template
-      const templatePath = path.join((process.cwd() || path.resolve('.')), '.documind', 'templates', 'github-pages-workflow.yml');
+      const templatePath = path.join(workingDir3, '.documind', 'templates', 'github-pages-workflow.yml');
       
       if (!await this.exists(templatePath)) {
         console.error('❌ GitHub Pages workflow template not found.');
@@ -335,7 +348,9 @@ https://github.com/denniswebb/documind
       throw new Error('No source directory found. Expected either src/ or .documind/');
     }
     
-    const targetCore = path.join((process.cwd() || path.resolve('.')), '.documind');
+    const cwd4 = process.cwd();
+    const workingDir4 = (!cwd4 || cwd4 === 'undefined') ? path.resolve('.') : cwd4;
+    const targetCore = path.join(workingDir4, '.documind');
     await this.copyDirectory(sourceCore, targetCore);
     console.log('  ✓ DocuMind core system installed');
   }
