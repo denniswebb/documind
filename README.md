@@ -186,13 +186,20 @@ You can customize the system by editing:
 ### Programmatic Usage
 ```javascript
 // Example usage for local development
-const dm = { 
-  install: () => require('./.documind/scripts/install.js'),
-  update: () => require('./.documind/scripts/update.js')
-};
+const fs = require('fs');
+const path = require('path');
 
-dm.install();
-dm.update();
+function runScript(scriptName) {
+  const scriptPath = `.documind/scripts/${scriptName}.js`;
+  if (fs.existsSync(scriptPath)) {
+    require(path.resolve(scriptPath));
+  } else {
+    console.log(`Script ${scriptName} not found`);
+  }
+}
+
+runScript('install');
+runScript('update');
 ```
 
 ### Custom Commands

@@ -24,7 +24,6 @@
     "coverage:check": "node --test --experimental-test-coverage tests/**/*.test.js | grep -E 'Coverage|%'",
     "coverage:validate": "node tests/coverage-validation.js",
     "coverage:report": "npm run test:coverage && npm run coverage:validate",
-    "install": "node .documind/scripts/install.js",
     "update": "node .documind/scripts/update.js",
     "version": "node -e \"console.log(require('./package.json').version)\""
   },
