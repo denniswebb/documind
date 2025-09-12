@@ -5,6 +5,7 @@
 
 import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
+import path from 'path';
 import { setupTestEnvironment } from '../utils/test-environment.js';
 import { createMockRepository, createMockRepositoryWithAITools } from '../utils/mock-repo.js';
 import { 
@@ -16,7 +17,6 @@ import {
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const CommandGenerator = require('../../.documind/scripts/generate-commands.cjs');
 
 describe('CommandGenerator Tests', () => {
   let testEnv;
@@ -24,6 +24,14 @@ describe('CommandGenerator Tests', () => {
 
   beforeEach(async () => {
     testEnv = await setupTestEnvironment('generate-commands-test-');
+    
+    // Set up simulated DocuMind installation environment
+    const testEnvironment = await import('../utils/test-environment.js');
+    const envHelper = new testEnvironment.default();
+    await envHelper.setupDocuMindEnvironment(testEnv.testDir);
+    
+    // Import CommandGenerator from simulated installed environment
+    const { default: CommandGenerator } = require(path.join(testEnv.testDir, '.documind/scripts/generate-commands.js'));
     generator = new CommandGenerator();
   });
 

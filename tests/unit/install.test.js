@@ -6,7 +6,6 @@ import { tmpdir } from 'node:os';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const DocuMindInstaller = require('../../.documind/scripts/install.cjs');
 
 describe('DocuMind Installer Tests', () => {
   let testDir;
@@ -23,7 +22,13 @@ describe('DocuMind Installer Tests', () => {
     testDir = await fs.realpath(testDir);
     process.chdir(testDir);
     
-    // Create installer instance
+    // Set up simulated DocuMind installation environment
+    const testEnvironment = await import('../utils/test-environment.js');
+    const envHelper = new testEnvironment.default();
+    await envHelper.setupDocuMindEnvironment(testDir);
+    
+    // Import DocuMindInstaller from simulated installed environment
+    const { default: DocuMindInstaller } = require(path.join(testDir, '.documind/scripts/install.js'));
     installer = new DocuMindInstaller();
   });
 

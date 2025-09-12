@@ -38,7 +38,7 @@ test('Full Deployment Validation', async (t) => {
       await env.copyDirectory(sourceDir, targetDir);
       
       // Run installation
-      const DocuMindInstaller = require('../../.documind/scripts/install.cjs');
+      const { default: DocuMindInstaller } = require('../../src/scripts/install.js');
       const installer = new DocuMindInstaller();
       installer.repoRoot = testDir;
       installer.documindDir = targetDir;
@@ -82,7 +82,7 @@ test('Full Deployment Validation', async (t) => {
       assert(claudeContent.includes('System Instructions'), 'Claude instructions should include system content');
       
       // 4. Test command generation
-      const CommandGenerator = require('../../.documind/scripts/generate-commands.cjs');
+      const { default: CommandGenerator } = require('../../src/scripts/generate-commands.js');
       const generator = new CommandGenerator();
       generator.repoRoot = testDir;
       generator.documindDir = targetDir;
@@ -90,7 +90,7 @@ test('Full Deployment Validation', async (t) => {
       await generator.generateClaudeCommands();
       
       // 5. Test update process
-      const UpdateScript = require('../../.documind/scripts/update.cjs');
+      const UpdateScript = require('../../src/scripts/update.js');
       const updater = new UpdateScript();
       updater.repoRoot = testDir;
       updater.documindDir = targetDir;
@@ -140,7 +140,7 @@ test('Full Deployment Validation', async (t) => {
       await env.copyDirectory(sourceDir, targetDir);
       
       // Run installation
-      const DocuMindInstaller = require('../../.documind/scripts/install.cjs');
+      const { default: DocuMindInstaller } = require('../../src/scripts/install.js');
       const installer = new DocuMindInstaller();
       installer.repoRoot = testDir;
       installer.documindDir = targetDir;
@@ -253,7 +253,7 @@ module.exports = redisConfig;
       await env.copyDirectory(sourceDir, targetDir);
       
       // Run full installation
-      const DocuMindInstaller = require('../../.documind/scripts/install.cjs');
+      const { default: DocuMindInstaller } = require('../../src/scripts/install.js');
       const installer = new DocuMindInstaller();
       installer.repoRoot = testDir;
       installer.documindDir = targetDir;
@@ -292,7 +292,7 @@ module.exports = redisConfig;
       }
       
       // Test that system can be updated
-      const UpdateScript = require('../../.documind/scripts/update.cjs');
+      const UpdateScript = require('../../src/scripts/update.js');
       const updater = new UpdateScript();
       updater.repoRoot = testDir;
       updater.documindDir = targetDir;
@@ -328,7 +328,7 @@ module.exports = redisConfig;
       await env.copyDirectory(sourceDir, targetDir);
       
       // Run installation - should handle errors gracefully
-      const DocuMindInstaller = require('../../.documind/scripts/install.cjs');
+      const { default: DocuMindInstaller } = require('../../src/scripts/install.js');
       const installer = new DocuMindInstaller();
       installer.repoRoot = testDir;
       installer.documindDir = targetDir;
@@ -388,7 +388,7 @@ module.exports = redisConfig;
       // Measure installation time
       const startTime = Date.now();
       
-      const DocuMindInstaller = require('../../.documind/scripts/install.cjs');
+      const { default: DocuMindInstaller } = require('../../src/scripts/install.js');
       const installer = new DocuMindInstaller();
       installer.repoRoot = testDir;
       installer.documindDir = targetDir;
@@ -404,7 +404,7 @@ module.exports = redisConfig;
       // Measure update time
       const updateStartTime = Date.now();
       
-      const UpdateScript = require('../../.documind/scripts/update.cjs');
+      const UpdateScript = require('../../src/scripts/update.js');
       const updater = new UpdateScript();
       updater.repoRoot = testDir;
       updater.documindDir = targetDir;

@@ -307,9 +307,22 @@ https://github.com/denniswebb/documind
   }
 
   async copyDocuMindCore() {
-    const sourceCore = path.join(__dirname, '.documind');
-    const targetCore = path.join(process.cwd(), '.documind');
+    // Check if we're in development (has src/) or installed package (has .documind/)
+    const developmentSource = path.join(__dirname, 'src');
+    const packagedSource = path.join(__dirname, '.documind');
     
+    let sourceCore;
+    if (await this.exists(developmentSource)) {
+      sourceCore = developmentSource; // Development: use src/
+      console.log(`  ${this.colors.neonCyan}📦 Using development source from src/${this.colors.reset}`);
+    } else if (await this.exists(packagedSource)) {
+      sourceCore = packagedSource; // Released package: use .documind/
+      console.log(`  ${this.colors.neonCyan}📦 Using packaged source from .documind/${this.colors.reset}`);
+    } else {
+      throw new Error('No source directory found. Expected either src/ or .documind/');
+    }
+    
+    const targetCore = path.join(process.cwd(), '.documind');
     await this.copyDirectory(sourceCore, targetCore);
     console.log('  ✓ DocuMind core system installed');
   }

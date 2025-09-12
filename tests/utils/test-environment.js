@@ -242,6 +242,16 @@ class TestEnvironment {
     this.createdDirs = [];
   }
 
+  async setupDocuMindEnvironment(testDir) {
+    // Copy src/ to .documind/ to simulate installed environment
+    const repoRoot = path.resolve(path.dirname(import.meta.url.replace('file://', '')), '../..');
+    const srcPath = path.join(repoRoot, 'src');
+    const documindPath = path.join(testDir, '.documind');
+    
+    await this.copyDirectory(srcPath, documindPath);
+    return documindPath;
+  }
+
   async copyDirectory(src, dest) {
     await fs.mkdir(dest, { recursive: true });
     const entries = await fs.readdir(src, { withFileTypes: true });

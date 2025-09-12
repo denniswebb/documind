@@ -171,9 +171,13 @@ class DocuMindUpdater {
       const coreFiles = ['system.md', 'commands.md'];
       const coreDirs = ['templates', 'scripts'];
       
+      // Ensure core directory exists
+      const coreDestDir = path.join(this.documindDir, 'core');
+      await fs.mkdir(coreDestDir, { recursive: true });
+      
       for (const file of coreFiles) {
-        const source = path.join(sourceDocumind, file);
-        const dest = path.join(this.documindDir, file);
+        const source = path.join(sourceDocumind, 'core', file);
+        const dest = path.join(this.documindDir, 'core', file);
         await fs.copyFile(source, dest);
         console.log(`  ✓ Updated ${file}`);
       }

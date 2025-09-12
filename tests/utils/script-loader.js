@@ -58,7 +58,7 @@ export function runScriptProcess(scriptPath, args = [], options = {}) {
 export class DocuMindInstallerProxy {
   constructor(repoRoot) {
     this.repoRoot = repoRoot;
-    this.scriptPath = path.resolve('../../.documind/scripts/install.cjs');
+    this.scriptPath = path.resolve('../../src/scripts/install.js');
   }
 
   async install() {
@@ -79,7 +79,7 @@ export class DocuMindInstallerProxy {
     // For template testing, we'll need to create a separate script or method
     // This is a simplified approach - real implementation would need more work
     const testScript = `
-      const DocuMindInstaller = require('${this.scriptPath}');
+      const { default: DocuMindInstaller } = require('${this.scriptPath}');
       const installer = new DocuMindInstaller();
       installer.repoRoot = '${this.repoRoot}';
       installer.documindDir = require('path').join('${this.repoRoot}', '.documind');

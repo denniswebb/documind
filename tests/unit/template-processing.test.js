@@ -11,7 +11,7 @@ test('Template Processing', async (t) => {
   
   await t.test('should load copilot-instructions template with project context', async () => {
     const testDir = await env.createTempDir('template-copilot');
-    const { default: DocuMindInstaller } = await import('../../.documind/scripts/install.cjs');
+    const { default: DocuMindInstaller } = await import('../../src/scripts/install.js');
     
     // Setup test environment
     const installer = new DocuMindInstaller();
@@ -38,7 +38,7 @@ test('Template Processing', async (t) => {
 
   await t.test('should load claude-instructions template with full content', async () => {
     const testDir = await env.createTempDir('template-claude');
-    const { default: DocuMindInstaller } = await import('../../.documind/scripts/install.cjs');
+    const { default: DocuMindInstaller } = await import('../../src/scripts/install.js');
     
     const installer = new DocuMindInstaller();
     installer.repoRoot = testDir;
@@ -64,7 +64,7 @@ test('Template Processing', async (t) => {
 
   await t.test('should load cursor-rules template correctly', async () => {
     const testDir = await env.createTempDir('template-cursor');
-    const { default: DocuMindInstaller } = await import('../../.documind/scripts/install.cjs');
+    const { default: DocuMindInstaller } = await import('../../src/scripts/install.js');
     
     const installer = new DocuMindInstaller();
     installer.repoRoot = testDir;
@@ -89,7 +89,7 @@ test('Template Processing', async (t) => {
 
   await t.test('should load cursorrules template for backward compatibility', async () => {
     const testDir = await env.createTempDir('template-cursorrules');
-    const { default: DocuMindInstaller } = await import('../../.documind/scripts/install.cjs');
+    const { default: DocuMindInstaller } = await import('../../src/scripts/install.js');
     
     const installer = new DocuMindInstaller();
     installer.repoRoot = testDir;
@@ -112,7 +112,7 @@ test('Template Processing', async (t) => {
 
   await t.test('should load gemini-instructions template', async () => {
     const testDir = await env.createTempDir('template-gemini');
-    const { default: DocuMindInstaller } = await import('../../.documind/scripts/install.cjs');
+    const { default: DocuMindInstaller } = await import('../../src/scripts/install.js');
     
     const installer = new DocuMindInstaller();
     installer.repoRoot = testDir;
@@ -137,7 +137,7 @@ test('Template Processing', async (t) => {
 
   await t.test('should load github-documentation template for Copilot', async () => {
     const testDir = await env.createTempDir('template-github-docs');
-    const { default: DocuMindInstaller } = await import('../../.documind/scripts/install.cjs');
+    const { default: DocuMindInstaller } = await import('../../src/scripts/install.js');
     
     const installer = new DocuMindInstaller();
     installer.repoRoot = testDir;
@@ -160,7 +160,7 @@ test('Template Processing', async (t) => {
 
   await t.test('should handle missing template gracefully', async () => {
     const testDir = await env.createTempDir('template-missing');
-    const { default: DocuMindInstaller } = await import('../../.documind/scripts/install.cjs');
+    const { default: DocuMindInstaller } = await import('../../src/scripts/install.js');
     
     const installer = new DocuMindInstaller();
     installer.repoRoot = testDir;
@@ -174,7 +174,7 @@ test('Template Processing', async (t) => {
 
   await t.test('should handle missing .documind files gracefully', async () => {
     const testDir = await env.createTempDir('template-missing-files');
-    const { default: DocuMindInstaller } = await import('../../.documind/scripts/install.cjs');
+    const { default: DocuMindInstaller } = await import('../../src/scripts/install.js');
     
     const installer = new DocuMindInstaller();
     installer.repoRoot = testDir;
@@ -191,7 +191,7 @@ test('Template Processing', async (t) => {
 
   await t.test('should interpolate template variables correctly', async () => {
     const testDir = await env.createTempDir('template-interpolation');
-    const { default: DocuMindInstaller } = await import('../../.documind/scripts/install.cjs');
+    const { default: DocuMindInstaller } = await import('../../src/scripts/install.js');
     
     const installer = new DocuMindInstaller();
     installer.repoRoot = testDir;
@@ -222,7 +222,7 @@ test('Template Processing', async (t) => {
 
   await t.test('should preserve template formatting and structure', async () => {
     const testDir = await env.createTempDir('template-formatting');
-    const { default: DocuMindInstaller } = await import('../../.documind/scripts/install.cjs');
+    const { default: DocuMindInstaller } = await import('../../src/scripts/install.js');
     
     const installer = new DocuMindInstaller();
     installer.repoRoot = testDir;

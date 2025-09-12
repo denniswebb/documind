@@ -4,9 +4,9 @@
  * Main entry point for programmatic usage
  */
 
-const path = require('path');
-const DocuMindInstaller = require('./.documind/scripts/install.js');
-const DocuMindUpdater = require('./.documind/scripts/update.js');
+import path from 'path';
+import { default as DocuMindInstaller } from './src/scripts/install.js';
+import { default as DocuMindUpdater } from './src/scripts/update.js';
 
 class DocuMind {
   constructor(options = {}) {
@@ -39,7 +39,7 @@ class DocuMind {
    */
   async isInstalled() {
     try {
-      const fs = require('fs').promises;
+      const { promises: fs } = await import('fs');
       await fs.access(this.documindDir);
       return true;
     } catch {
@@ -52,7 +52,7 @@ class DocuMind {
    */
   async getVersion() {
     try {
-      const fs = require('fs').promises;
+      const { promises: fs } = await import('fs');
       const versionFile = path.join(this.documindDir, 'VERSION');
       const version = await fs.readFile(versionFile, 'utf8');
       return version.trim();
@@ -66,7 +66,7 @@ class DocuMind {
    */
   async getCommands() {
     try {
-      const fs = require('fs').promises;
+      const { promises: fs } = await import('fs');
       const commandsFile = path.join(this.documindDir, 'commands.md');
       const commands = await fs.readFile(commandsFile, 'utf8');
       return commands;
@@ -76,4 +76,4 @@ class DocuMind {
   }
 }
 
-module.exports = DocuMind;
+export default DocuMind;

@@ -4,33 +4,32 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
 import { createRequire } from 'node:module';
+import TestEnvironment from '../utils/test-environment.js';
 
 const require = createRequire(import.meta.url);
-
-// Import the modules we'll be testing
-const DocuMindInstaller = require('../../.documind/scripts/install.cjs');
-const CommandGenerator = require('../../.documind/scripts/generate-commands.cjs');
 
 describe('File Operations Contract Tests', () => {
   let testDir;
   let installer;
+  let testEnv;
 
   beforeEach(async () => {
-    // Create a unique temporary directory for each test
-    testDir = await fs.mkdtemp(path.join(tmpdir(), 'documind-test-'));
+    // Create test environment and set up DocuMind structure
+    testEnv = new TestEnvironment();
+    testDir = await testEnv.createTempDir('documind-test-');
     process.chdir(testDir);
     
-    // Create a DocuMindInstaller instance
+    // Set up simulated DocuMind installation environment
+    await testEnv.setupDocuMindEnvironment(testDir);
+    
+    // Import modules from simulated installed environment
+    const { default: DocuMindInstaller } = require(path.join(testDir, '.documind/scripts/install.js'));
     installer = new DocuMindInstaller();
   });
 
   afterEach(async () => {
-    // Clean up test directory
-    try {
-      await fs.rm(testDir, { recursive: true, force: true });
-    } catch (error) {
-      // Ignore cleanup errors
-    }
+    // Clean up test environment
+    await testEnv.cleanup(testDir);
   });
 
   describe('Directory Creation', () => {

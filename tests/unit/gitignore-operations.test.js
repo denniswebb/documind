@@ -14,7 +14,7 @@ test('Gitignore Operations', async (t) => {
   
   await t.test('should add DocuMind comment to new .gitignore file', async () => {
     const testDir = await env.createTempDir('gitignore-new');
-    const DocuMindInstaller = require('../../.documind/scripts/install.cjs');
+    const { default: DocuMindInstaller } = require('../../src/scripts/install.js');
     
     const installer = new DocuMindInstaller();
     installer.repoRoot = testDir;
@@ -34,7 +34,7 @@ test('Gitignore Operations', async (t) => {
 
   await t.test('should add DocuMind comment to existing .gitignore without DocuMind references', async () => {
     const testDir = await env.createTempDir('gitignore-existing');
-    const DocuMindInstaller = require('../../.documind/scripts/install.cjs');
+    const { default: DocuMindInstaller } = require('../../src/scripts/install.js');
     
     const installer = new DocuMindInstaller();
     installer.repoRoot = testDir;
@@ -67,7 +67,7 @@ dist/
 
   await t.test('should not modify .gitignore if DocuMind already referenced', async () => {
     const testDir = await env.createTempDir('gitignore-has-documind');
-    const DocuMindInstaller = require('../../.documind/scripts/install.cjs');
+    const { default: DocuMindInstaller } = require('../../src/scripts/install.js');
     
     const installer = new DocuMindInstaller();
     installer.repoRoot = testDir;
@@ -93,7 +93,7 @@ dist/
 
   await t.test('should not modify .gitignore if .documind already referenced', async () => {
     const testDir = await env.createTempDir('gitignore-has-dir');
-    const DocuMindInstaller = require('../../.documind/scripts/install.cjs');
+    const { default: DocuMindInstaller } = require('../../src/scripts/install.js');
     
     const installer = new DocuMindInstaller();
     installer.repoRoot = testDir;
@@ -118,7 +118,7 @@ dist/`;
 
   await t.test('should handle case-sensitive DocuMind detection', async () => {
     const testDir = await env.createTempDir('gitignore-case-sensitive');
-    const DocuMindInstaller = require('../../.documind/scripts/install.cjs');
+    const { default: DocuMindInstaller } = require('../../src/scripts/install.js');
     
     const installer = new DocuMindInstaller();
     installer.repoRoot = testDir;
@@ -144,7 +144,7 @@ some-other-stuff`;
 
   await t.test('should preserve .gitignore file structure and formatting', async () => {
     const testDir = await env.createTempDir('gitignore-formatting');
-    const DocuMindInstaller = require('../../.documind/scripts/install.cjs');
+    const { default: DocuMindInstaller } = require('../../src/scripts/install.js');
     
     const installer = new DocuMindInstaller();
     installer.repoRoot = testDir;
@@ -191,7 +191,7 @@ Thumbs.db`;
 
   await t.test('should handle empty .gitignore file', async () => {
     const testDir = await env.createTempDir('gitignore-empty');
-    const DocuMindInstaller = require('../../.documind/scripts/install.cjs');
+    const { default: DocuMindInstaller } = require('../../src/scripts/install.js');
     
     const installer = new DocuMindInstaller();
     installer.repoRoot = testDir;
@@ -212,7 +212,7 @@ Thumbs.db`;
 
   await t.test('should handle .gitignore with only whitespace', async () => {
     const testDir = await env.createTempDir('gitignore-whitespace');
-    const DocuMindInstaller = require('../../.documind/scripts/install.cjs');
+    const { default: DocuMindInstaller } = require('../../src/scripts/install.js');
     
     const installer = new DocuMindInstaller();
     installer.repoRoot = testDir;
@@ -233,7 +233,7 @@ Thumbs.db`;
 
   await t.test('should maintain proper line endings', async () => {
     const testDir = await env.createTempDir('gitignore-line-endings');
-    const DocuMindInstaller = require('../../.documind/scripts/install.cjs');
+    const { default: DocuMindInstaller } = require('../../src/scripts/install.js');
     
     const installer = new DocuMindInstaller();
     installer.repoRoot = testDir;
@@ -261,7 +261,7 @@ Thumbs.db`;
 
   await t.test('should handle very large .gitignore files', async () => {
     const testDir = await env.createTempDir('gitignore-large');
-    const DocuMindInstaller = require('../../.documind/scripts/install.cjs');
+    const { default: DocuMindInstaller } = require('../../src/scripts/install.js');
     
     const installer = new DocuMindInstaller();
     installer.repoRoot = testDir;

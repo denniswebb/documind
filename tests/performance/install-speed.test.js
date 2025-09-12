@@ -38,7 +38,7 @@ test('Installation Speed Performance', async (t) => {
       // Measure installation performance
       const startTime = performance.now();
       
-      const DocuMindInstaller = require('../../.documind/scripts/install.cjs');
+      const { default: DocuMindInstaller } = require('../../src/scripts/install.js');
       const installer = new DocuMindInstaller();
       installer.repoRoot = testDir;
       installer.documindDir = targetDir;
@@ -112,7 +112,7 @@ test('Installation Speed Performance', async (t) => {
       // Measure installation performance
       const startTime = performance.now();
       
-      const DocuMindInstaller = require('../../.documind/scripts/install.cjs');
+      const { default: DocuMindInstaller } = require('../../src/scripts/install.js');
       const installer = new DocuMindInstaller();
       installer.repoRoot = testDir;
       installer.documindDir = targetDir;
@@ -233,7 +233,7 @@ export default Module${i};`;
       // Measure installation performance
       const startTime = performance.now();
       
-      const DocuMindInstaller = require('../../.documind/scripts/install.cjs');
+      const { default: DocuMindInstaller } = require('../../src/scripts/install.js');
       const installer = new DocuMindInstaller();
       installer.repoRoot = testDir;
       installer.documindDir = targetDir;
@@ -281,7 +281,7 @@ export default Module${i};`;
         // Measure installation time
         const startTime = performance.now();
         
-        const DocuMindInstaller = require('../../.documind/scripts/install.cjs');
+        const { default: DocuMindInstaller } = require('../../src/scripts/install.js');
         const installer = new DocuMindInstaller();
         installer.repoRoot = testDir;
         installer.documindDir = targetDir;
@@ -328,7 +328,7 @@ export default Module${i};`;
       const targetDir = path.join(testDir, '.documind');
       await env.copyDirectory(sourceDir, targetDir);
       
-      const DocuMindInstaller = require('../../.documind/scripts/install.cjs');
+      const { default: DocuMindInstaller } = require('../../src/scripts/install.js');
       const installer = new DocuMindInstaller();
       installer.repoRoot = testDir;
       installer.documindDir = targetDir;
@@ -338,7 +338,7 @@ export default Module${i};`;
       // Measure update performance
       const startTime = performance.now();
       
-      const UpdateScript = require('../../.documind/scripts/update.cjs');
+      const UpdateScript = require('../../src/scripts/update.js');
       const updater = new UpdateScript();
       updater.repoRoot = testDir;
       updater.documindDir = targetDir;
@@ -371,7 +371,7 @@ export default Module${i};`;
       // Measure command generation performance
       const startTime = performance.now();
       
-      const CommandGenerator = require('../../.documind/scripts/generate-commands.cjs');
+      const { default: CommandGenerator } = require('../../src/scripts/generate-commands.js');
       const generator = new CommandGenerator();
       generator.repoRoot = testDir;
       generator.documindDir = targetDir;

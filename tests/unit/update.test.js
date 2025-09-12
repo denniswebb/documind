@@ -18,7 +18,7 @@ import {
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const DocuMindUpdater = require('../../.documind/scripts/update.cjs');
+const { default: DocuMindUpdater } = require('../../src/scripts/update.js');
 
 describe('DocuMindUpdater Tests', () => {
   let testEnv;
@@ -166,14 +166,14 @@ describe('DocuMindUpdater Tests', () => {
       
       try {
         // Mock the installer dependency
-        const originalInstaller = require('../../.documind/scripts/install.cjs');
+        const originalInstaller = require('../../src/scripts/install.js');
         const mockInstaller = class MockInstaller {
           async detectAITools() { return ['claude']; }
           async generateInstructionFile() { return; }
         };
         
         // Temporarily replace the require
-        require.cache[require.resolve('../../.documind/scripts/install.cjs')] = {
+        require.cache[require.resolve('../../src/scripts/install.js')] = {
           exports: mockInstaller
         };
         
@@ -196,7 +196,7 @@ describe('DocuMindUpdater Tests', () => {
         );
         
         // Restore original installer
-        require.cache[require.resolve('../../.documind/scripts/install.cjs')] = {
+        require.cache[require.resolve('../../src/scripts/install.js')] = {
           exports: originalInstaller
         };
         
@@ -318,7 +318,7 @@ describe('DocuMindUpdater Tests', () => {
         };
         
         // Temporarily replace the require
-        require.cache[require.resolve('../../.documind/scripts/install.cjs')] = {
+        require.cache[require.resolve('../../src/scripts/install.js')] = {
           exports: mockInstaller
         };
         
@@ -503,8 +503,8 @@ describe('DocuMindUpdater Tests', () => {
       };
       
       // Replace the require temporarily
-      const originalInstaller = require('../../.documind/scripts/install.cjs');
-      require.cache[require.resolve('../../.documind/scripts/install.cjs')] = {
+      const originalInstaller = require('../../src/scripts/install.js');
+      require.cache[require.resolve('../../src/scripts/install.js')] = {
         exports: mockInstaller
       };
       
@@ -523,7 +523,7 @@ describe('DocuMindUpdater Tests', () => {
         
       } finally {
         // Restore original installer
-        require.cache[require.resolve('../../.documind/scripts/install.cjs')] = {
+        require.cache[require.resolve('../../src/scripts/install.js')] = {
           exports: originalInstaller
         };
       }
@@ -551,8 +551,8 @@ describe('DocuMindUpdater Tests', () => {
       };
       
       // Replace the require temporarily
-      const originalInstaller = require('../../.documind/scripts/install.cjs');
-      require.cache[require.resolve('../../.documind/scripts/install.cjs')] = {
+      const originalInstaller = require('../../src/scripts/install.js');
+      require.cache[require.resolve('../../src/scripts/install.js')] = {
         exports: mockInstaller
       };
       
@@ -571,7 +571,7 @@ describe('DocuMindUpdater Tests', () => {
       } finally {
         console.log = originalLog;
         // Restore original installer
-        require.cache[require.resolve('../../.documind/scripts/install.cjs')] = {
+        require.cache[require.resolve('../../src/scripts/install.js')] = {
           exports: originalInstaller
         };
       }
@@ -943,7 +943,7 @@ describe('DocuMindUpdater Tests', () => {
     test('should handle local update via CLI args', async () => {
       // Mock process.argv
       const originalArgv = process.argv;
-      process.argv = ['node', 'update.cjs', '--local', testEnv.testDir];
+      process.argv = ['node', 'update.js', '--local', testEnv.testDir];
       
       // Create source structure
       await createMockRepositoryWithDocuMind(testEnv.testDir, 'nodejs', true);
@@ -969,7 +969,7 @@ describe('DocuMindUpdater Tests', () => {
     test('should handle regular update via CLI with no args', async () => {
       // Mock process.argv for regular update
       const originalArgv = process.argv;
-      process.argv = ['node', 'update.cjs'];
+      process.argv = ['node', 'update.js'];
       
       let updateCalled = false;
       const originalUpdate = updater.update;
@@ -991,7 +991,7 @@ describe('DocuMindUpdater Tests', () => {
 
     test('should handle CLI args with default path for local update', async () => {
       const originalArgv = process.argv;
-      process.argv = ['node', 'update.cjs', '--local'];
+      process.argv = ['node', 'update.js', '--local'];
       
       let localUpdateCalled = false;
       let calledWithPath = null;
@@ -1195,7 +1195,7 @@ describe('DocuMindUpdater Tests', () => {
           async generateInstructionFile() { return; }
         };
         
-        require.cache[require.resolve('../../.documind/scripts/install.cjs')] = {
+        require.cache[require.resolve('../../src/scripts/install.js')] = {
           exports: mockInstaller
         };
         

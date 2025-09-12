@@ -32,7 +32,7 @@ test('Cross-Platform Compatibility', async (t) => {
       const targetDir = path.join(testDir, '.documind');
       await env.copyDirectory(sourceDir, targetDir);
       
-      const DocuMindInstaller = require('../../.documind/scripts/install.cjs');
+      const { default: DocuMindInstaller } = require('../../src/scripts/install.js');
       const installer = new DocuMindInstaller();
       installer.repoRoot = testDir;
       installer.documindDir = targetDir;
@@ -79,7 +79,7 @@ test('Cross-Platform Compatibility', async (t) => {
       const targetDir = path.join(testDir, '.documind');
       await env.copyDirectory(sourceDir, targetDir);
       
-      const DocuMindInstaller = require('../../.documind/scripts/install.cjs');
+      const { default: DocuMindInstaller } = require('../../src/scripts/install.js');
       const installer = new DocuMindInstaller();
       installer.repoRoot = testDir;
       installer.documindDir = targetDir;
@@ -125,7 +125,7 @@ test('Cross-Platform Compatibility', async (t) => {
       const targetDir = path.join(testDir, '.documind');
       await env.copyDirectory(sourceDir, targetDir);
       
-      const DocuMindInstaller = require('../../.documind/scripts/install.cjs');
+      const { default: DocuMindInstaller } = require('../../src/scripts/install.js');
       const installer = new DocuMindInstaller();
       installer.repoRoot = testDir;
       installer.documindDir = targetDir;
@@ -165,7 +165,7 @@ test('Cross-Platform Compatibility', async (t) => {
       await fs.mkdir(readOnlyDir, { recursive: true });
       await fs.chmod(readOnlyDir, 0o555);
       
-      const DocuMindInstaller = require('../../.documind/scripts/install.cjs');
+      const { default: DocuMindInstaller } = require('../../src/scripts/install.js');
       const installer = new DocuMindInstaller();
       installer.repoRoot = testDir;
       installer.documindDir = targetDir;
@@ -204,7 +204,7 @@ test('Cross-Platform Compatibility', async (t) => {
       const targetDir = path.join(testDir, '.documind');
       await env.copyDirectory(sourceDir, targetDir);
       
-      const DocuMindInstaller = require('../../.documind/scripts/install.cjs');
+      const { default: DocuMindInstaller } = require('../../src/scripts/install.js');
       const installer = new DocuMindInstaller();
       installer.repoRoot = testDir;
       installer.documindDir = targetDir;
@@ -212,14 +212,14 @@ test('Cross-Platform Compatibility', async (t) => {
       await installer.install();
       
       // Test Node.js-specific features
-      const CommandGenerator = require('../../.documind/scripts/generate-commands.cjs');
+      const { default: CommandGenerator } = require('../../src/scripts/generate-commands.js');
       const generator = new CommandGenerator();
       generator.repoRoot = testDir;
       generator.documindDir = targetDir;
       
       await generator.generateClaudeCommands();
       
-      const UpdateScript = require('../../.documind/scripts/update.cjs');
+      const UpdateScript = require('../../src/scripts/update.js');
       const updater = new UpdateScript();
       updater.repoRoot = testDir;
       updater.documindDir = targetDir;
@@ -258,7 +258,7 @@ test('Cross-Platform Compatibility', async (t) => {
       const targetDir = path.join(testDir, '.documind');
       await env.copyDirectory(sourceDir, targetDir);
       
-      const DocuMindInstaller = require('../../.documind/scripts/install.cjs');
+      const { default: DocuMindInstaller } = require('../../src/scripts/install.js');
       const installer = new DocuMindInstaller();
       installer.repoRoot = testDir;
       installer.documindDir = targetDir;
@@ -344,7 +344,7 @@ test('Cross-Platform Compatibility', async (t) => {
       const targetDir = path.join(testDir, '.documind');
       await env.copyDirectory(sourceDir, targetDir);
       
-      const DocuMindInstaller = require('../../.documind/scripts/install.cjs');
+      const { default: DocuMindInstaller } = require('../../src/scripts/install.js');
       const installer = new DocuMindInstaller();
       installer.repoRoot = testDir;
       installer.documindDir = targetDir;
@@ -386,7 +386,7 @@ test('Cross-Platform Compatibility', async (t) => {
         originalLog(...args);
       };
       
-      const DocuMindInstaller = require('../../.documind/scripts/install.cjs');
+      const { default: DocuMindInstaller } = require('../../src/scripts/install.js');
       const installer = new DocuMindInstaller();
       installer.repoRoot = testDir;
       installer.documindDir = targetDir;
