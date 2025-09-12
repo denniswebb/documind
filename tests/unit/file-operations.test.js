@@ -19,9 +19,15 @@ describe('File Operations Tests', () => {
     originalCwd = path.resolve(testFileDir, '..', '..');
     
     // Create a unique temporary directory for each test
-    testDir = await fs.mkdtemp(path.join(tmpdir(), 'documind-file-ops-test-'));
+    const tempBase = tmpdir() || '/tmp';
+    testDir = await fs.mkdtemp(path.join(tempBase, 'documind-file-ops-test-'));
     // Resolve the real path to handle symlinks like /var -> /private/var on macOS
     testDir = await fs.realpath(testDir);
+    
+    // Ensure testDir is never undefined
+    if (!testDir || testDir === 'undefined') {
+      throw new Error('Failed to create temporary test directory');
+    }
   });
 
   afterEach(async () => {

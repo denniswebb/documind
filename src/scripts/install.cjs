@@ -7,6 +7,12 @@ class DocuMindInstaller {
   constructor() {
     this.repoRoot = process.cwd();
     this.documindDir = path.join(this.repoRoot, '.documind');
+    this.srcDir = this.findSrcDir();
+  }
+
+  findSrcDir() {
+    // Find the src directory relative to this script
+    return path.resolve(__dirname, '..');
   }
 
   async install() {
@@ -345,7 +351,7 @@ ${await this.readDocuMindFile('commands.md')}
   
   async readDocuMindFile(filename) {
     try {
-      const content = await fs.readFile(path.join(this.documindDir, filename), 'utf8');
+      const content = await fs.readFile(path.join(this.srcDir, filename), 'utf8');
       return content;
     } catch (error) {
       console.warn(`Warning: Could not read ${filename}`);

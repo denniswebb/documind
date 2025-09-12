@@ -19,9 +19,15 @@ describe('Command Generation Tests', () => {
     originalCwd = path.resolve(testFileDir, '..', '..');
     
     // Create a unique temporary directory for each test
-    testDir = await fs.mkdtemp(path.join(tmpdir(), 'documind-commands-test-'));
+    const tempBase = tmpdir() || '/tmp';
+    testDir = await fs.mkdtemp(path.join(tempBase, 'documind-commands-test-'));
     // Resolve the real path to handle symlinks like /var -> /private/var on macOS
     testDir = await fs.realpath(testDir);
+    
+    // Ensure testDir is never undefined
+    if (!testDir || testDir === 'undefined') {
+      throw new Error('Failed to create temporary test directory');
+    }
   });
 
   afterEach(async () => {

@@ -189,7 +189,7 @@ class DocuMindInstaller {
     }
     
     try {
-      const templatePath = path.join(this.documindDir, 'templates', 'ai-configs', templateFile);
+      const templatePath = path.join(this.srcDir, 'templates', 'ai-configs', templateFile);
       return await fs.readFile(templatePath, 'utf8');
     } catch (error) {
       console.warn(`Warning: Could not read template ${templateFile}:`, error.message);
