@@ -24,14 +24,7 @@ DocuMind transforms how you document your projects by enabling documentation com
 ### Installation
 
 ```bash
-# Option 1: NPX (recommended)
-npx @documind/core init
-
-# Option 2: Global install
-npm install -g @documind/core
-documind init
-
-# Option 3: Clone and run
+# Clone and run
 git clone https://github.com/denniswebb/documind.git
 cd your-project
 node /path/to/documind/.documind/scripts/install.js
@@ -159,12 +152,7 @@ git clone repo && cd repo
 4. **Templates provide structure** for consistent, professional output
 5. **Navigation updates** automatically to maintain coherent structure
 
-## 📦 Distribution Options
-
-### NPX (Recommended)
-```bash
-npx @documind/core init
-```
+## 📦 Installation Options
 
 ### GitHub Template
 ```bash
@@ -197,15 +185,14 @@ You can customize the system by editing:
 
 ### Programmatic Usage
 ```javascript
-const DocuMind = require('@documind/core');
+// Example usage for local development
+const dm = { 
+  install: () => require('./.documind/scripts/install.js'),
+  update: () => require('./.documind/scripts/update.js')
+};
 
-const dm = new DocuMind({ rootDir: './my-project' });
-
-await dm.install();
-await dm.update();
-
-const isInstalled = await dm.isInstalled();
-const version = await dm.getVersion();
+dm.install();
+dm.update();
 ```
 
 ### Custom Commands
@@ -223,14 +210,8 @@ Your custom documentation command
 Keep DocuMind current:
 
 ```bash
-# Auto-update
-documind update
-
-# Check version
-documind version
-
 # Update from local development
-documind update --local /path/to/documind/source
+node .documind/scripts/update.js
 ```
 
 ## 🧪 Testing
@@ -298,7 +279,7 @@ tests/
 Our GitHub Actions workflow tests across:
 
 - **Node.js versions**: 16.x, 18.x, 20.x, 21.x
-- **Operating systems**: Ubuntu, Windows, macOS
+- **Operating system**: Ubuntu (latest)
 - **Test categories**: Unit, integration, performance
 - **Quality checks**: Linting, security audit, coverage validation
 
@@ -349,7 +330,6 @@ MIT License - see [LICENSE](./LICENSE) for details.
 ## 🔗 Links
 
 - **GitHub**: [denniswebb/documind](https://github.com/denniswebb/documind)
-- **NPM**: [@documind/core](https://npmjs.com/package/@documind/core)
 - **Documentation**: [Full Docs](./docs/README.md)
 - **Issues**: [Bug Reports](https://github.com/denniswebb/documind/issues)
 
