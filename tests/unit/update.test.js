@@ -38,7 +38,9 @@ describe('Update Command Tests', () => {
 
   describe('Update Command Availability', () => {
     test('should handle update command after installation', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // First install DocuMind
       await execFileAsync('node', [cliPath, 'init', testDir]);
@@ -82,7 +84,9 @@ describe('Update Command Tests', () => {
     });
 
     test('should handle update command without prior installation', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Try to run update without prior installation
       try {
@@ -116,7 +120,9 @@ describe('Update Command Tests', () => {
 
   describe('Version Management', () => {
     test('should maintain version information after installation', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Install DocuMind
       await execFileAsync('node', [cliPath, 'init', testDir]);
@@ -134,7 +140,9 @@ describe('Update Command Tests', () => {
     });
 
     test('should preserve VERSION file structure during operations', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Install and check VERSION file
       await execFileAsync('node', [cliPath, 'init', testDir]);
@@ -155,7 +163,9 @@ describe('Update Command Tests', () => {
 
   describe('Local Update Simulation', () => {
     test('should handle local source directory operations', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Create a source directory structure
       const sourceDir = path.join(testDir, 'source');
@@ -180,7 +190,9 @@ describe('Update Command Tests', () => {
     });
 
     test('should maintain file structure integrity during operations', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Install DocuMind
       await execFileAsync('node', [cliPath, 'init', testDir]);
@@ -218,7 +230,9 @@ describe('Update Command Tests', () => {
 
   describe('Error Handling and Edge Cases', () => {
     test('should handle missing .documind directory gracefully', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Try update without any DocuMind installation
       try {
@@ -239,7 +253,9 @@ describe('Update Command Tests', () => {
     });
 
     test('should handle corrupted installation directories', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Create partial/corrupted .documind directory
       await fs.mkdir(path.join(testDir, '.documind'), { recursive: true });
@@ -263,7 +279,9 @@ describe('Update Command Tests', () => {
 
   describe('Command Integration', () => {
     test('should integrate properly with main CLI', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Test that the CLI recognizes update as a command
       try {
@@ -283,7 +301,9 @@ describe('Update Command Tests', () => {
     });
 
     test('should work from different working directories', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Install DocuMind
       await execFileAsync('node', [cliPath, 'init', testDir]);

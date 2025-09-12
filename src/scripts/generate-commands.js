@@ -5,7 +5,7 @@ import path from 'path';
 
 class CommandGenerator {
   constructor() {
-    this.repoRoot = process.cwd();
+    this.repoRoot = process.cwd() || path.resolve('.');
     this.documindDir = path.join(this.repoRoot, '.documind');
   }
 

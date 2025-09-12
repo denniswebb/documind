@@ -38,7 +38,9 @@ describe('Template Processing Tests', () => {
 
   describe('Template Generation and Content', () => {
     test('should generate Claude instructions template with proper structure', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Run the installer
       await execFileAsync('node', [cliPath, 'init', testDir]);
@@ -61,7 +63,9 @@ describe('Template Processing Tests', () => {
     });
 
     test('should generate Gemini instructions template correctly', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       await execFileAsync('node', [cliPath, 'init', testDir]);
       
@@ -76,7 +80,9 @@ describe('Template Processing Tests', () => {
     });
 
     test('should generate Copilot instructions template', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       await execFileAsync('node', [cliPath, 'init', testDir]);
       
@@ -90,7 +96,9 @@ describe('Template Processing Tests', () => {
     });
 
     test('should generate Cursor rules template', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       await execFileAsync('node', [cliPath, 'init', testDir]);
       
@@ -106,7 +114,9 @@ describe('Template Processing Tests', () => {
 
   describe('Template Content Integration', () => {
     test('should include system and commands content in templates', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       await execFileAsync('node', [cliPath, 'init', testDir]);
       
@@ -132,7 +142,9 @@ describe('Template Processing Tests', () => {
     });
 
     test('should maintain consistent command structure across templates', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       await execFileAsync('node', [cliPath, 'init', testDir]);
       
@@ -161,7 +173,9 @@ describe('Template Processing Tests', () => {
 
   describe('Template Formatting and Structure', () => {
     test('should generate well-formatted markdown templates', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       await execFileAsync('node', [cliPath, 'init', testDir]);
       
@@ -179,7 +193,9 @@ describe('Template Processing Tests', () => {
     });
 
     test('should preserve template formatting consistency', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       await execFileAsync('node', [cliPath, 'init', testDir]);
       
@@ -208,7 +224,9 @@ describe('Template Processing Tests', () => {
 
   describe('Error Handling and Edge Cases', () => {
     test('should handle template generation with custom project structure', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Create a custom project structure before installation
       await fs.mkdir(path.join(testDir, 'src'), { recursive: true });
@@ -236,7 +254,9 @@ describe('Template Processing Tests', () => {
     });
 
     test('should work in projects with existing AI tool configurations', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Pre-create some AI configuration files
       await fs.writeFile(path.join(testDir, 'CLAUDE.md'), '# Existing Claude Config\nSome existing content');
@@ -254,7 +274,9 @@ describe('Template Processing Tests', () => {
     });
 
     test('should handle template generation in various directory structures', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Test with deeply nested target directory
       const nestedDir = path.join(testDir, 'projects', 'my-app', 'workspace');

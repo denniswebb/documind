@@ -38,7 +38,9 @@ describe('Gitignore Operations Tests', () => {
 
   describe('GitIgnore Creation and Updates', () => {
     test('should create .gitignore with DocuMind comment in new repository', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Run the installer
       await execFileAsync('node', [cliPath, 'init', testDir]);
@@ -54,7 +56,9 @@ describe('Gitignore Operations Tests', () => {
     });
 
     test('should add DocuMind comment to existing .gitignore without DocuMind references', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Create existing .gitignore with common patterns
       const existingContent = `node_modules/
@@ -81,7 +85,9 @@ dist/
     });
 
     test('should not modify .gitignore if DocuMind already referenced', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Create .gitignore that already has DocuMind reference
       const existingContent = `node_modules/
@@ -104,7 +110,9 @@ dist/
     });
 
     test('should not modify .gitignore if .documind already referenced', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Create .gitignore that already has .documind reference
       const existingContent = `node_modules/
@@ -126,7 +134,9 @@ dist/`;
     });
 
     test('should handle case-sensitive DocuMind detection properly', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Create .gitignore with different case
       const existingContent = `node_modules/
@@ -148,7 +158,9 @@ some-other-stuff`;
 
   describe('GitIgnore Formatting and Structure', () => {
     test('should preserve .gitignore file structure and formatting', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Create .gitignore with specific formatting
       const existingContent = `# Dependencies
@@ -189,7 +201,9 @@ Thumbs.db`;
     });
 
     test('should handle empty .gitignore file', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Create empty .gitignore
       await fs.writeFile(path.join(testDir, '.gitignore'), '');
@@ -205,7 +219,9 @@ Thumbs.db`;
     });
 
     test('should handle .gitignore with only whitespace', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Create .gitignore with only whitespace
       await fs.writeFile(path.join(testDir, '.gitignore'), '   \n\n  \t  \n');
@@ -221,7 +237,9 @@ Thumbs.db`;
     });
 
     test('should maintain proper line endings', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Create .gitignore with Unix line endings
       const existingContent = 'node_modules/\n*.log\n.env';
@@ -246,7 +264,9 @@ Thumbs.db`;
 
   describe('Performance and Edge Cases', () => {
     test('should handle very large .gitignore files', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Create large .gitignore with many entries
       const largeContent = Array.from({ length: 1000 }, (_, i) => `file${i}.tmp`).join('\n');
@@ -267,7 +287,9 @@ Thumbs.db`;
     });
 
     test('should work when .gitignore does not initially exist', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Ensure no .gitignore exists initially
       const gitignorePath = path.join(testDir, '.gitignore');
@@ -289,7 +311,9 @@ Thumbs.db`;
     });
 
     test('should handle .gitignore with mixed content types', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Create .gitignore with various patterns
       const mixedContent = `# Comments

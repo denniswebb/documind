@@ -38,7 +38,9 @@ describe('Command Generation Tests', () => {
 
   describe('AI Tool Detection and Command Generation', () => {
     test('should generate commands for detected AI tools during installation', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Run the installer
       const { stdout } = await execFileAsync('node', [cliPath, 'init', testDir]);
@@ -54,7 +56,9 @@ describe('Command Generation Tests', () => {
     });
 
     test('should detect existing AI tools and preserve configuration', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Pre-create some AI tool indicators
       await fs.mkdir(path.join(testDir, '.github'), { recursive: true });
@@ -76,7 +80,9 @@ describe('Command Generation Tests', () => {
     });
 
     test('should work in empty repository without existing AI tools', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Run installer in completely empty directory
       await execFileAsync('node', [cliPath, 'init', testDir]);
@@ -103,7 +109,9 @@ describe('Command Generation Tests', () => {
     });
 
     test('should generate proper command content in AI configuration files', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       await execFileAsync('node', [cliPath, 'init', testDir]);
       
@@ -127,7 +135,9 @@ describe('Command Generation Tests', () => {
 
   describe('Project Type Detection', () => {
     test('should work with Node.js projects', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Create package.json to simulate Node.js project
       await fs.writeFile(path.join(testDir, 'package.json'), JSON.stringify({
@@ -147,7 +157,9 @@ describe('Command Generation Tests', () => {
     });
 
     test('should work with Python projects', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Create requirements.txt to simulate Python project
       await fs.writeFile(path.join(testDir, 'requirements.txt'), 'requests==2.28.0\nnumpy==1.21.0');
@@ -160,7 +172,9 @@ describe('Command Generation Tests', () => {
     });
 
     test('should work with generic projects', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Create some generic files
       await fs.writeFile(path.join(testDir, 'README.md'), '# Generic Project');
@@ -176,7 +190,9 @@ describe('Command Generation Tests', () => {
 
   describe('Update Command Generation', () => {
     test('should be able to regenerate commands after installation', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Initial installation
       await execFileAsync('node', [cliPath, 'init', testDir]);
@@ -187,7 +203,7 @@ describe('Command Generation Tests', () => {
       
       // Run update command if available
       try {
-        const { stdout } = await execFileAsync('node', [cliPath, 'update'], { cwd: testDir });
+        await execFileAsync('node', [cliPath, 'update'], { cwd: testDir });
         
         // If update succeeded, check that configuration was restored/updated
         const claudeContent = await fs.readFile(claudePath, 'utf8');
@@ -209,7 +225,9 @@ describe('Command Generation Tests', () => {
 
   describe('Error Handling', () => {
     test('should handle directories with special characters', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       const specialDir = path.join(testDir, 'test-with-spaces and symbols!');
       await fs.mkdir(specialDir);
       
@@ -220,7 +238,9 @@ describe('Command Generation Tests', () => {
     });
 
     test('should handle very long paths', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       const longDir = path.join(testDir, 'very'.repeat(20), 'long'.repeat(20), 'path'.repeat(20));
       await fs.mkdir(longDir, { recursive: true });
       

@@ -6,7 +6,7 @@ import https from 'https';
 
 class DocuMindUpdater {
   constructor() {
-    this.repoRoot = process.cwd();
+    this.repoRoot = process.cwd() || path.resolve('.');
     this.documindDir = path.join(this.repoRoot, '.documind');
     this.versionFile = path.join(this.documindDir, 'core', 'VERSION');
     this.updateUrl = 'https://api.github.com/repos/denniswebb/documind/releases/latest';

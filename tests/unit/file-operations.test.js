@@ -38,7 +38,9 @@ describe('File Operations Tests', () => {
 
   describe('Directory Creation via CLI', () => {
     test('should create all required directories during installation', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Run the installer
       await execFileAsync('node', [cliPath, 'init', testDir]);
@@ -53,7 +55,9 @@ describe('File Operations Tests', () => {
     });
 
     test('should handle existing directories gracefully', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Pre-create some directories
       await fs.mkdir(path.join(testDir, '.github'), { recursive: true });
@@ -69,7 +73,9 @@ describe('File Operations Tests', () => {
 
   describe('File Writing Operations via CLI', () => {
     test('should create all required files with correct content', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Run the installer
       await execFileAsync('node', [cliPath, 'init', testDir]);
@@ -99,7 +105,9 @@ describe('File Operations Tests', () => {
     });
 
     test('should create files with expected content patterns', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Run the installer
       await execFileAsync('node', [cliPath, 'init', testDir]);
@@ -121,7 +129,9 @@ describe('File Operations Tests', () => {
 
   describe('AI Tool Detection via File Presence', () => {
     test('should detect existing AI configurations and preserve them', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Pre-create some AI tool files
       await fs.mkdir(path.join(testDir, '.github'), { recursive: true });
@@ -143,7 +153,9 @@ describe('File Operations Tests', () => {
 
   describe('Package.json Integration', () => {
     test('should work correctly without package.json', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Run installer in directory without package.json
       await assert.doesNotReject(
@@ -156,7 +168,9 @@ describe('File Operations Tests', () => {
     });
 
     test('should work correctly with existing package.json', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Create package.json first
       const packageContent = {
@@ -186,7 +200,9 @@ describe('File Operations Tests', () => {
 
   describe('File Existence and Error Handling', () => {
     test('should handle permission errors gracefully', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       const readOnlyDir = path.join(testDir, 'readonly');
       await fs.mkdir(readOnlyDir);
       await fs.chmod(readOnlyDir, 0o444); // Read-only
@@ -203,7 +219,9 @@ describe('File Operations Tests', () => {
     });
 
     test('should handle non-existent target directory', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       const nonExistentDir = path.join(testDir, 'does-not-exist');
       
       try {

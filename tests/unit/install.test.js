@@ -38,7 +38,9 @@ describe('DocuMind Installer Tests', () => {
 
   describe('CLI Installation', () => {
     test('should install DocuMind successfully in empty directory', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Run the installer
       const { stdout } = await execFileAsync('node', [cliPath, 'init', testDir]);
@@ -61,7 +63,9 @@ describe('DocuMind Installer Tests', () => {
     });
 
     test('should create proper file contents', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Run the installer
       await execFileAsync('node', [cliPath, 'init', testDir]);
@@ -81,7 +85,9 @@ describe('DocuMind Installer Tests', () => {
     });
 
     test('should handle existing installation gracefully', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Run installer twice
       await execFileAsync('node', [cliPath, 'init', testDir]);
@@ -92,7 +98,9 @@ describe('DocuMind Installer Tests', () => {
     });
 
     test('should update .gitignore correctly', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       
       // Create initial .gitignore
       await fs.writeFile(path.join(testDir, '.gitignore'), 'node_modules/\\n*.log\\n');
@@ -107,7 +115,9 @@ describe('DocuMind Installer Tests', () => {
     });
 
     test('should work with different target directories', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       const subDir = path.join(testDir, 'subproject');
       await fs.mkdir(subDir);
       
@@ -122,7 +132,9 @@ describe('DocuMind Installer Tests', () => {
 
   describe('Error Handling', () => {
     test('should handle permission errors gracefully', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       const readOnlyDir = path.join(testDir, 'readonly');
       await fs.mkdir(readOnlyDir);
       await fs.chmod(readOnlyDir, 0o444); // Read-only
@@ -139,7 +151,9 @@ describe('DocuMind Installer Tests', () => {
     });
 
     test('should handle non-existent target directory', async () => {
-      const cliPath = path.resolve(originalCwd, 'cli.js');
+      // Ensure originalCwd is set, fallback if not
+      const projectRoot = originalCwd || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const cliPath = path.resolve(projectRoot, 'cli.js');
       const nonExistentDir = path.join(testDir, 'does-not-exist');
       
       try {

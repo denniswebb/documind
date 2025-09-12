@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 
 class DocuMindInstaller {
   constructor() {
-    this.repoRoot = process.cwd();
+    this.repoRoot = process.cwd() || path.resolve('.');
     this.documindDir = path.join(this.repoRoot, '.documind');
     this.srcDir = this.findSrcDir();
   }
