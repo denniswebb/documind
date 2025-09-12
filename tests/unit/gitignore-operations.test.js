@@ -14,7 +14,12 @@ test('Gitignore Operations', async (t) => {
   
   await t.test('should add DocuMind comment to new .gitignore file', async () => {
     const testDir = await env.createTempDir('gitignore-new');
-    const { default: DocuMindInstaller } = require('../../src/scripts/install.js');
+    
+    // Set up simulated DocuMind installation environment
+    await env.setupDocuMindEnvironment(testDir);
+    
+    // Import DocuMindInstaller from simulated installed environment
+    const { default: DocuMindInstaller } = require(path.join(testDir, '.documind/scripts/install.js'));
     
     const installer = new DocuMindInstaller();
     installer.repoRoot = testDir;

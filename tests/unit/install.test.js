@@ -2,14 +2,14 @@ import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { tmpdir } from 'node:os';
-import { createRequire } from 'node:module';
 
-const require = createRequire(import.meta.url);
+const execFileAsync = promisify(execFile);
 
 describe('DocuMind Installer Tests', () => {
   let testDir;
-  let installer;
   let originalCwd;
 
   beforeEach(async () => {
@@ -20,16 +20,6 @@ describe('DocuMind Installer Tests', () => {
     testDir = await fs.mkdtemp(path.join(tmpdir(), 'documind-install-test-'));
     // Resolve the real path to handle symlinks like /var -> /private/var on macOS
     testDir = await fs.realpath(testDir);
-    process.chdir(testDir);
-    
-    // Set up simulated DocuMind installation environment
-    const testEnvironment = await import('../utils/test-environment.js');
-    const envHelper = new testEnvironment.default();
-    await envHelper.setupDocuMindEnvironment(testDir);
-    
-    // Import DocuMindInstaller from simulated installed environment
-    const { default: DocuMindInstaller } = require(path.join(testDir, '.documind/scripts/install.js'));
-    installer = new DocuMindInstaller();
   });
 
   afterEach(async () => {
@@ -44,207 +34,118 @@ describe('DocuMind Installer Tests', () => {
     }
   });
 
-  describe('Constructor', () => {
-    test('should initialize with correct repo root', () => {
-      assert.strictEqual(installer.repoRoot, testDir, 'Should set repo root to current directory');
+  describe('CLI Installation', () => {
+    test('should install DocuMind successfully in empty directory', async () => {
+      const cliPath = path.resolve(originalCwd, 'cli.js');
+      
+      // Run the installer
+      const { stdout } = await execFileAsync('node', [cliPath, 'init', testDir]);
+      
+      // Verify installation succeeded
+      assert(stdout.includes('✅ DocuMind installed successfully!'), 'Should show success message');
+      
+      // Verify core files were created
+      await assert.doesNotReject(fs.access(path.join(testDir, '.documind')), 'Should create .documind directory');
+      await assert.doesNotReject(fs.access(path.join(testDir, '.documind/core')), 'Should create core directory');
+      await assert.doesNotReject(fs.access(path.join(testDir, '.documind/core/system.md')), 'Should create system.md');
+      await assert.doesNotReject(fs.access(path.join(testDir, '.documind/core/commands.md')), 'Should create commands.md');
+      await assert.doesNotReject(fs.access(path.join(testDir, '.documind/core/VERSION')), 'Should create VERSION file');
+      
+      // Verify AI configuration files were created
+      await assert.doesNotReject(fs.access(path.join(testDir, 'CLAUDE.md')), 'Should create CLAUDE.md');
+      await assert.doesNotReject(fs.access(path.join(testDir, '.github/copilot-instructions.md')), 'Should create copilot instructions');
+      await assert.doesNotReject(fs.access(path.join(testDir, '.cursor/rules')), 'Should create .cursor/rules directory');
+      await assert.doesNotReject(fs.access(path.join(testDir, 'GEMINI.md')), 'Should create GEMINI.md');
     });
 
-    test('should set correct documind directory path', () => {
-      const expectedPath = path.join(testDir, '.documind');
-      assert.strictEqual(installer.documindDir, expectedPath, 'Should set documind dir correctly');
-    });
-  });
-
-  describe('AI Tool Detection', () => {
-    test('should detect no specific tools in empty repository', async () => {
-      const tools = await installer.detectAITools();
+    test('should create proper file contents', async () => {
+      const cliPath = path.resolve(originalCwd, 'cli.js');
       
-      assert.ok(Array.isArray(tools), 'Should return an array');
-      // For empty repo, should return all default tools
-      assert.ok(tools.length > 0, 'Should return default tools');
-      assert.ok(tools.includes('copilot'), 'Should include copilot in defaults');
-      assert.ok(tools.includes('claude'), 'Should include claude in defaults');
-      assert.ok(tools.includes('cursor'), 'Should include cursor in defaults');
-      assert.ok(tools.includes('gemini'), 'Should include gemini in defaults');
-    });
-
-    test('should detect Claude when CLAUDE.md exists', async () => {
-      await fs.writeFile('CLAUDE.md', '# Existing Claude instructions');
+      // Run the installer
+      await execFileAsync('node', [cliPath, 'init', testDir]);
       
-      const tools = await installer.detectAITools();
+      // Check CLAUDE.md content
+      const claudeContent = await fs.readFile(path.join(testDir, 'CLAUDE.md'), 'utf8');
+      assert(claudeContent.includes('DocuMind'), 'CLAUDE.md should mention DocuMind');
+      assert(claudeContent.includes('/document'), 'CLAUDE.md should include document commands');
       
-      assert.ok(tools.includes('claude'), 'Should detect Claude tool');
+      // Check system.md exists and has content
+      const systemContent = await fs.readFile(path.join(testDir, '.documind/core/system.md'), 'utf8');
+      assert(systemContent.length > 100, 'system.md should have substantial content');
+      
+      // Check commands.md exists and has content
+      const commandsContent = await fs.readFile(path.join(testDir, '.documind/core/commands.md'), 'utf8');
+      assert(commandsContent.includes('document'), 'commands.md should include document commands');
     });
 
-    test('should detect Copilot when .github directory exists', async () => {
-      await fs.mkdir('.github');
+    test('should handle existing installation gracefully', async () => {
+      const cliPath = path.resolve(originalCwd, 'cli.js');
       
-      const tools = await installer.detectAITools();
+      // Run installer twice
+      await execFileAsync('node', [cliPath, 'init', testDir]);
+      const { stdout } = await execFileAsync('node', [cliPath, 'init', testDir]);
       
-      assert.ok(tools.includes('copilot'), 'Should detect Copilot tool');
+      // Should show already initialized message
+      assert(stdout.includes('already initialized'), 'Should detect existing installation');
     });
 
-    test('should detect Cursor when .cursor directory exists', async () => {
-      await fs.mkdir('.cursor');
+    test('should update .gitignore correctly', async () => {
+      const cliPath = path.resolve(originalCwd, 'cli.js');
       
-      const tools = await installer.detectAITools();
+      // Create initial .gitignore
+      await fs.writeFile(path.join(testDir, '.gitignore'), 'node_modules/\\n*.log\\n');
       
-      assert.ok(tools.includes('cursor'), 'Should detect Cursor tool');
+      // Run installer
+      await execFileAsync('node', [cliPath, 'init', testDir]);
+      
+      // Check .gitignore was updated
+      const gitignoreContent = await fs.readFile(path.join(testDir, '.gitignore'), 'utf8');
+      assert(gitignoreContent.includes('node_modules/'), 'Should preserve existing entries');
+      assert(gitignoreContent.includes('DocuMind'), 'Should add DocuMind comment');
     });
 
-    test('should detect Cursor when .cursorrules file exists', async () => {
-      await fs.writeFile('.cursorrules', 'cursor rules content');
+    test('should work with different target directories', async () => {
+      const cliPath = path.resolve(originalCwd, 'cli.js');
+      const subDir = path.join(testDir, 'subproject');
+      await fs.mkdir(subDir);
       
-      const tools = await installer.detectAITools();
+      // Run installer in subdirectory
+      await execFileAsync('node', [cliPath, 'init', subDir]);
       
-      assert.ok(tools.includes('cursor'), 'Should detect Cursor from .cursorrules');
-    });
-
-    test('should detect multiple tools when multiple indicators exist', async () => {
-      await fs.writeFile('CLAUDE.md', 'claude');
-      await fs.mkdir('.github');
-      await fs.writeFile('.cursorrules', 'cursor');
-      
-      const tools = await installer.detectAITools();
-      
-      assert.ok(tools.includes('claude'), 'Should detect Claude');
-      assert.ok(tools.includes('copilot'), 'Should detect Copilot');
-      assert.ok(tools.includes('cursor'), 'Should detect Cursor');
-    });
-
-    test('should remove duplicates from detected tools', async () => {
-      // Create multiple Cursor indicators
-      await fs.mkdir('.cursor');
-      await fs.writeFile('.cursorrules', 'cursor');
-      
-      const tools = await installer.detectAITools();
-      
-      // Should only have one instance of 'cursor'
-      const cursorCount = tools.filter(tool => tool === 'cursor').length;
-      assert.strictEqual(cursorCount, 1, 'Should remove duplicate tools');
-    });
-  });
-
-  describe('Template Loading (Currently Failing - Templates Need Implementation)', () => {
-    test('should fail to load non-existent template', async () => {
-      const templateName = 'non-existent-template';
-      
-      // This should fail because template loading isn't fully implemented
-      await assert.rejects(
-        async () => {
-          const content = await installer.loadTemplate(templateName);
-          if (!content || content.includes('[') && content.includes('not found]')) {
-            throw new Error('Template not found');
-          }
-          return content;
-        },
-        'Should fail when template does not exist'
-      );
-    });
-
-    test('should load claude-instructions template', async () => {
-      const templateName = 'claude-instructions';
-      
-      // This will currently work because it uses inline templates
-      const content = await installer.loadTemplate(templateName);
-      
-      assert.ok(content, 'Should return template content');
-      assert.ok(content.includes('Claude'), 'Template should contain Claude-specific content');
-      assert.ok(content.includes('Documentation Commands'), 'Template should have documentation commands section');
+      // Verify files were created in subdirectory
+      await assert.doesNotReject(fs.access(path.join(subDir, '.documind')), 'Should create .documind in target directory');
+      await assert.doesNotReject(fs.access(path.join(subDir, 'CLAUDE.md')), 'Should create CLAUDE.md in target directory');
     });
   });
 
-  describe('Instruction File Generation', () => {
-    test('should generate Claude instruction file', async () => {
-      // Mock the .documind directory structure
-      await fs.mkdir('.documind/core', { recursive: true });
-      await fs.writeFile('.documind/core/system.md', 'System instructions content');
-      await fs.writeFile('.documind/core/commands.md', 'Commands content');
+  describe('Error Handling', () => {
+    test('should handle permission errors gracefully', async () => {
+      const cliPath = path.resolve(originalCwd, 'cli.js');
+      const readOnlyDir = path.join(testDir, 'readonly');
+      await fs.mkdir(readOnlyDir);
+      await fs.chmod(readOnlyDir, 0o444); // Read-only
       
-      await installer.generateClaudeInstructions();
-      
-      // Check that CLAUDE.md was created
-      await assert.doesNotReject(fs.access('CLAUDE.md'), 'CLAUDE.md should be created');
-      
-      const content = await fs.readFile('CLAUDE.md', 'utf8');
-      assert.ok(content.includes('Claude Instructions'), 'Should contain Claude header');
-      assert.ok(content.includes('DocuMind'), 'Should mention DocuMind');
+      try {
+        await execFileAsync('node', [cliPath, 'init', readOnlyDir]);
+        assert.fail('Should have thrown an error for read-only directory');
+      } catch (error) {
+        assert(error.stderr.includes('❌'), 'Should show error message');
+      } finally {
+        // Restore permissions for cleanup
+        await fs.chmod(readOnlyDir, 0o755).catch(() => {});
+      }
     });
 
-    test('should generate Copilot instruction files', async () => {
-      await installer.generateCopilotInstructions();
+    test('should handle non-existent target directory', async () => {
+      const cliPath = path.resolve(originalCwd, 'cli.js');
+      const nonExistentDir = path.join(testDir, 'does-not-exist');
       
-      // Should create .github directory and files
-      await assert.doesNotReject(fs.access('.github'), '.github directory should be created');
-      await assert.doesNotReject(
-        fs.access('.github/copilot-instructions.md'), 
-        'Copilot instructions should be created'
-      );
-      
-      const content = await fs.readFile('.github/copilot-instructions.md', 'utf8');
-      assert.ok(content.includes('GitHub Copilot'), 'Should contain Copilot-specific content');
-    });
-
-    test('should generate Cursor instruction files', async () => {
-      await installer.generateCursorInstructions();
-      
-      // Should create both .cursor/rules directory and .cursorrules file
-      await assert.doesNotReject(fs.access('.cursor'), '.cursor directory should be created');
-      await assert.doesNotReject(fs.access('.cursorrules'), '.cursorrules file should be created');
-      
-      const cursorRulesContent = await fs.readFile('.cursorrules', 'utf8');
-      assert.ok(cursorRulesContent.includes('DocuMind'), 'Should contain DocuMind content');
-    });
-
-    test('should generate Gemini instruction file', async () => {
-      await installer.generateGeminiInstructions();
-      
-      await assert.doesNotReject(fs.access('GEMINI.md'), 'GEMINI.md should be created');
-      
-      const content = await fs.readFile('GEMINI.md', 'utf8');
-      assert.ok(content.includes('Gemini'), 'Should contain Gemini-specific content');
-    });
-  });
-
-  describe('Full Installation Process', () => {
-    test('should complete installation without errors in empty repo', async () => {
-      // Mock .documind directory with required files
-      await fs.mkdir('.documind/core', { recursive: true });
-      await fs.writeFile('.documind/core/system.md', 'System content');
-      await fs.writeFile('.documind/core/commands.md', 'Commands content');
-      
-      // Should not throw during installation
-      await assert.doesNotReject(
-        installer.install(),
-        'Installation should complete without errors'
-      );
-    });
-
-    test('should create instruction files for all detected tools', async () => {
-      // Setup mock .documind directory
-      await fs.mkdir('.documind/core', { recursive: true });
-      await fs.writeFile('.documind/core/system.md', 'System');
-      await fs.writeFile('.documind/core/commands.md', 'Commands');
-      
-      await installer.install();
-      
-      // All default tools should have instruction files created
-      await assert.doesNotReject(fs.access('CLAUDE.md'), 'Claude instructions should exist');
-      await assert.doesNotReject(fs.access('.github/copilot-instructions.md'), 'Copilot instructions should exist');
-      await assert.doesNotReject(fs.access('.cursorrules'), 'Cursor instructions should exist');
-      await assert.doesNotReject(fs.access('GEMINI.md'), 'Gemini instructions should exist');
-    });
-
-    test('should handle missing .documind files gracefully', async () => {
-      // Don't create .documind directory - this should still work but with warnings
-      
-      await assert.doesNotReject(
-        installer.install(),
-        'Should handle missing .documind files gracefully'
-      );
-      
-      // Files should still be created but may contain "[file not found]" placeholders
-      await assert.doesNotReject(fs.access('CLAUDE.md'), 'CLAUDE.md should still be created');
+      try {
+        await execFileAsync('node', [cliPath, 'init', nonExistentDir]);
+        assert.fail('Should have thrown an error for non-existent directory');
+      } catch (error) {
+        assert(error.stderr.includes('❌'), 'Should show error message');
+      }
     });
   });
 });

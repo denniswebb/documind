@@ -245,10 +245,23 @@ class TestEnvironment {
   async setupDocuMindEnvironment(testDir) {
     // Copy src/ to .documind/ to simulate installed environment
     const repoRoot = path.resolve(path.dirname(import.meta.url.replace('file://', '')), '../..');
-    const srcPath = path.join(repoRoot, 'src');
-    const documindPath = path.join(testDir, '.documind');
     
-    await this.copyDirectory(srcPath, documindPath);
+    // Try src/ first (development), fall back to .documind/ (CI/packaged)
+    let sourcePath = path.join(repoRoot, 'src');
+    try {
+      await fs.access(sourcePath);
+    } catch {
+      // Fallback to .documind/ if src/ doesn't exist (CI environment)
+      sourcePath = path.join(repoRoot, '.documind');
+      try {
+        await fs.access(sourcePath);
+      } catch {
+        throw new Error('Neither src/ nor .documind/ directory found in repository');
+      }
+    }
+    
+    const documindPath = path.join(testDir, '.documind');
+    await this.copyDirectory(sourcePath, documindPath);
     return documindPath;
   }
 
