@@ -142,16 +142,17 @@ describe('DocuMindUpdater Tests', () => {
       // Create source directory with updated files
       const sourceDir = await fs.mkdtemp(path.join(require('os').tmpdir(), 'source-'));
       await fs.mkdir(path.join(sourceDir, '.documind'), { recursive: true });
+      await fs.mkdir(path.join(sourceDir, '.documind', 'core'), { recursive: true });
       await fs.mkdir(path.join(sourceDir, '.documind', 'templates'), { recursive: true });
       await fs.mkdir(path.join(sourceDir, '.documind', 'scripts'), { recursive: true });
       
       // Create updated files
       await fs.writeFile(
-        path.join(sourceDir, '.documind', 'system.md'),
+        path.join(sourceDir, '.documind', 'core', 'system.md'),
         'Updated system instructions'
       );
       await fs.writeFile(
-        path.join(sourceDir, '.documind', 'commands.md'),
+        path.join(sourceDir, '.documind', 'core', 'commands.md'),
         'Updated commands reference'
       );
       await fs.writeFile(
@@ -180,11 +181,11 @@ describe('DocuMindUpdater Tests', () => {
         
         // Verify files were updated
         await assertFileContains(
-          path.join(testEnv.testDir, '.documind', 'system.md'),
+          path.join(testEnv.testDir, '.documind', 'core', 'system.md'),
           'Updated system instructions'
         );
         await assertFileContains(
-          path.join(testEnv.testDir, '.documind', 'commands.md'),
+          path.join(testEnv.testDir, '.documind', 'core', 'commands.md'),
           'Updated commands reference'
         );
         await assertFileExists(
@@ -287,16 +288,17 @@ describe('DocuMindUpdater Tests', () => {
       // Create source directory with updated files
       const sourceDir = await fs.mkdtemp(path.join(require('os').tmpdir(), 'console-source-'));
       await fs.mkdir(path.join(sourceDir, '.documind'), { recursive: true });
+      await fs.mkdir(path.join(sourceDir, '.documind', 'core'), { recursive: true });
       await fs.mkdir(path.join(sourceDir, '.documind', 'templates'), { recursive: true });
       await fs.mkdir(path.join(sourceDir, '.documind', 'scripts'), { recursive: true });
       
       // Create updated files
       await fs.writeFile(
-        path.join(sourceDir, '.documind', 'system.md'),
+        path.join(sourceDir, '.documind', 'core', 'system.md'),
         'Console output test system instructions'
       );
       await fs.writeFile(
-        path.join(sourceDir, '.documind', 'commands.md'),
+        path.join(sourceDir, '.documind', 'core', 'commands.md'),
         'Console output test commands reference'
       );
       await fs.writeFile(
@@ -333,7 +335,7 @@ describe('DocuMindUpdater Tests', () => {
         
         // Verify files were updated
         await assertFileContains(
-          path.join(testEnv.testDir, '.documind', 'system.md'),
+          path.join(testEnv.testDir, '.documind', 'core', 'system.md'),
           'Console output test system instructions'
         );
         
@@ -1174,15 +1176,16 @@ describe('DocuMindUpdater Tests', () => {
       
       try {
         await fs.mkdir(path.join(sourceDir, '.documind'), { recursive: true });
+        await fs.mkdir(path.join(sourceDir, '.documind', 'core'), { recursive: true });
         await fs.mkdir(path.join(sourceDir, '.documind', 'templates'), { recursive: true });
         await fs.mkdir(path.join(sourceDir, '.documind', 'scripts'), { recursive: true });
         
         await fs.writeFile(
-          path.join(sourceDir, '.documind', 'system.md'),
+          path.join(sourceDir, '.documind', 'core', 'system.md'),
           'Updated system for integration test'
         );
         await fs.writeFile(
-          path.join(sourceDir, '.documind', 'commands.md'),
+          path.join(sourceDir, '.documind', 'core', 'commands.md'),
           'Updated commands for integration test'
         );
         
@@ -1201,11 +1204,11 @@ describe('DocuMindUpdater Tests', () => {
         
         // Verify update was successful
         await assertFileContains(
-          path.join(testEnv.testDir, '.documind', 'system.md'),
+          path.join(testEnv.testDir, '.documind', 'core', 'system.md'),
           'Updated system for integration test'
         );
         await assertFileContains(
-          path.join(testEnv.testDir, '.documind', 'commands.md'),
+          path.join(testEnv.testDir, '.documind', 'core', 'commands.md'),
           'Updated commands for integration test'
         );
         

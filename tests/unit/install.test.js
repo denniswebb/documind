@@ -152,9 +152,9 @@ describe('DocuMind Installer Tests', () => {
   describe('Instruction File Generation', () => {
     test('should generate Claude instruction file', async () => {
       // Mock the .documind directory structure
-      await fs.mkdir('.documind', { recursive: true });
-      await fs.writeFile('.documind/system.md', 'System instructions content');
-      await fs.writeFile('.documind/commands.md', 'Commands content');
+      await fs.mkdir('.documind/core', { recursive: true });
+      await fs.writeFile('.documind/core/system.md', 'System instructions content');
+      await fs.writeFile('.documind/core/commands.md', 'Commands content');
       
       await installer.generateClaudeInstructions();
       
@@ -204,9 +204,9 @@ describe('DocuMind Installer Tests', () => {
   describe('Full Installation Process', () => {
     test('should complete installation without errors in empty repo', async () => {
       // Mock .documind directory with required files
-      await fs.mkdir('.documind', { recursive: true });
-      await fs.writeFile('.documind/system.md', 'System content');
-      await fs.writeFile('.documind/commands.md', 'Commands content');
+      await fs.mkdir('.documind/core', { recursive: true });
+      await fs.writeFile('.documind/core/system.md', 'System content');
+      await fs.writeFile('.documind/core/commands.md', 'Commands content');
       
       // Should not throw during installation
       await assert.doesNotReject(
@@ -217,9 +217,9 @@ describe('DocuMind Installer Tests', () => {
 
     test('should create instruction files for all detected tools', async () => {
       // Setup mock .documind directory
-      await fs.mkdir('.documind', { recursive: true });
-      await fs.writeFile('.documind/system.md', 'System');
-      await fs.writeFile('.documind/commands.md', 'Commands');
+      await fs.mkdir('.documind/core', { recursive: true });
+      await fs.writeFile('.documind/core/system.md', 'System');
+      await fs.writeFile('.documind/core/commands.md', 'Commands');
       
       await installer.install();
       

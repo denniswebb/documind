@@ -223,13 +223,13 @@ describe('CommandGenerator Tests', () => {
       await createMockRepository(testEnv.testDir, 'nodejs');
       
       // Create mock .documind files
-      await generator.ensureDir('.documind');
+      await generator.ensureDir('.documind/core');
       await require('fs').promises.writeFile(
-        require('path').join(testEnv.testDir, '.documind', 'system.md'),
+        require('path').join(testEnv.testDir, '.documind', 'core', 'system.md'),
         'Custom system instructions for testing'
       );
       await require('fs').promises.writeFile(
-        require('path').join(testEnv.testDir, '.documind', 'commands.md'),
+        require('path').join(testEnv.testDir, '.documind', 'core', 'commands.md'),
         'Custom commands reference for testing'
       );
       
@@ -297,9 +297,9 @@ describe('CommandGenerator Tests', () => {
 
     test('should read DocuMind files successfully when they exist', async () => {
       await createMockRepository(testEnv.testDir, 'nodejs');
-      await generator.ensureDir('.documind');
+      await generator.ensureDir('.documind/core');
       await require('fs').promises.writeFile(
-        require('path').join(testEnv.testDir, '.documind', 'test.md'),
+        require('path').join(testEnv.testDir, '.documind', 'core', 'test.md'),
         'Test content for DocuMind file'
       );
       

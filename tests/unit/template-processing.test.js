@@ -20,8 +20,9 @@ test('Template Processing', async (t) => {
     
     // Create minimal .documind structure
     await fs.mkdir(installer.documindDir, { recursive: true });
-    await fs.writeFile(path.join(installer.documindDir, 'system.md'), 'Test system instructions');
-    await fs.writeFile(path.join(installer.documindDir, 'commands.md'), 'Test commands reference');
+    await fs.mkdir(path.join(installer.documindDir, 'core'), { recursive: true });
+    await fs.writeFile(path.join(installer.documindDir, 'core', 'system.md'), 'Test system instructions');
+    await fs.writeFile(path.join(installer.documindDir, 'core', 'commands.md'), 'Test commands reference');
     
     // Test template loading
     const template = await installer.loadTemplate('copilot-instructions');
@@ -45,8 +46,9 @@ test('Template Processing', async (t) => {
     
     // Create minimal .documind structure
     await fs.mkdir(installer.documindDir, { recursive: true });
-    await fs.writeFile(path.join(installer.documindDir, 'system.md'), 'Claude system content');
-    await fs.writeFile(path.join(installer.documindDir, 'commands.md'), 'Claude commands content');
+    await fs.mkdir(path.join(installer.documindDir, 'core'), { recursive: true });
+    await fs.writeFile(path.join(installer.documindDir, 'core', 'system.md'), 'Claude system content');
+    await fs.writeFile(path.join(installer.documindDir, 'core', 'commands.md'), 'Claude commands content');
     
     const template = await installer.loadTemplate('claude-instructions');
     
@@ -70,8 +72,9 @@ test('Template Processing', async (t) => {
     
     // Create .documind structure
     await fs.mkdir(installer.documindDir, { recursive: true });
-    await fs.writeFile(path.join(installer.documindDir, 'system.md'), 'Cursor system rules');
-    await fs.writeFile(path.join(installer.documindDir, 'commands.md'), 'Cursor commands list');
+    await fs.mkdir(path.join(installer.documindDir, 'core'), { recursive: true });
+    await fs.writeFile(path.join(installer.documindDir, 'core', 'system.md'), 'Cursor system rules');
+    await fs.writeFile(path.join(installer.documindDir, 'core', 'commands.md'), 'Cursor commands list');
     
     const template = await installer.loadTemplate('cursor-rules');
     
@@ -94,7 +97,8 @@ test('Template Processing', async (t) => {
     
     // Create .documind structure
     await fs.mkdir(installer.documindDir, { recursive: true });
-    await fs.writeFile(path.join(installer.documindDir, 'system.md'), 'Legacy cursor rules');
+    await fs.mkdir(path.join(installer.documindDir, 'core'), { recursive: true });
+    await fs.writeFile(path.join(installer.documindDir, 'core', 'system.md'), 'Legacy cursor rules');
     
     const template = await installer.loadTemplate('cursorrules');
     
@@ -116,8 +120,9 @@ test('Template Processing', async (t) => {
     
     // Create .documind structure
     await fs.mkdir(installer.documindDir, { recursive: true });
-    await fs.writeFile(path.join(installer.documindDir, 'system.md'), 'Gemini system instructions');
-    await fs.writeFile(path.join(installer.documindDir, 'commands.md'), 'Gemini commands reference');
+    await fs.mkdir(path.join(installer.documindDir, 'core'), { recursive: true });
+    await fs.writeFile(path.join(installer.documindDir, 'core', 'system.md'), 'Gemini system instructions');
+    await fs.writeFile(path.join(installer.documindDir, 'core', 'commands.md'), 'Gemini commands reference');
     
     const template = await installer.loadTemplate('gemini-instructions');
     
@@ -140,7 +145,8 @@ test('Template Processing', async (t) => {
     
     // Create .documind structure
     await fs.mkdir(installer.documindDir, { recursive: true });
-    await fs.writeFile(path.join(installer.documindDir, 'system.md'), 'GitHub documentation rules');
+    await fs.mkdir(path.join(installer.documindDir, 'core'), { recursive: true });
+    await fs.writeFile(path.join(installer.documindDir, 'core', 'system.md'), 'GitHub documentation rules');
     
     const template = await installer.loadTemplate('github-documentation');
     
@@ -193,9 +199,10 @@ test('Template Processing', async (t) => {
     
     // Create .documind structure with specific content
     await fs.mkdir(installer.documindDir, { recursive: true });
-    await fs.writeFile(path.join(installer.documindDir, 'system.md'), 
+    await fs.mkdir(path.join(installer.documindDir, 'core'), { recursive: true });
+    await fs.writeFile(path.join(installer.documindDir, 'core', 'system.md'), 
       '# System Instructions\n\nThis is the system configuration.');
-    await fs.writeFile(path.join(installer.documindDir, 'commands.md'), 
+    await fs.writeFile(path.join(installer.documindDir, 'core', 'commands.md'), 
       '# Commands Reference\n\nAvailable commands listed here.');
     
     const template = await installer.loadTemplate('claude-instructions');
@@ -223,8 +230,9 @@ test('Template Processing', async (t) => {
     
     // Create .documind structure
     await fs.mkdir(installer.documindDir, { recursive: true });
-    await fs.writeFile(path.join(installer.documindDir, 'system.md'), 'Test content');
-    await fs.writeFile(path.join(installer.documindDir, 'commands.md'), 'Test commands');
+    await fs.mkdir(path.join(installer.documindDir, 'core'), { recursive: true });
+    await fs.writeFile(path.join(installer.documindDir, 'core', 'system.md'), 'Test content');
+    await fs.writeFile(path.join(installer.documindDir, 'core', 'commands.md'), 'Test commands');
     
     const template = await installer.loadTemplate('copilot-instructions');
     
