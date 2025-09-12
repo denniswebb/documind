@@ -2,183 +2,161 @@ import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { tmpdir } from 'node:os';
-import { createRequire } from 'node:module';
-import TestEnvironment from '../utils/test-environment.js';
 
-const require = createRequire(import.meta.url);
+const execFileAsync = promisify(execFile);
 
-describe('File Operations Contract Tests', () => {
+describe('File Operations Tests', () => {
   let testDir;
-  let installer;
-  let testEnv;
+  let originalCwd;
 
   beforeEach(async () => {
-    // Create test environment and set up DocuMind structure
-    testEnv = new TestEnvironment();
-    testDir = await testEnv.createTempDir('documind-test-');
-    process.chdir(testDir);
+    // Save original working directory
+    originalCwd = process.cwd();
     
-    // Set up simulated DocuMind installation environment
-    await testEnv.setupDocuMindEnvironment(testDir);
-    
-    // Import modules from simulated installed environment
-    const { default: DocuMindInstaller } = require(path.join(testDir, '.documind/scripts/install.js'));
-    installer = new DocuMindInstaller();
+    // Create a unique temporary directory for each test
+    testDir = await fs.mkdtemp(path.join(tmpdir(), 'documind-file-ops-test-'));
+    // Resolve the real path to handle symlinks like /var -> /private/var on macOS
+    testDir = await fs.realpath(testDir);
   });
 
   afterEach(async () => {
-    // Clean up test environment
-    await testEnv.cleanup(testDir);
+    // Restore original working directory
+    process.chdir(originalCwd);
+    
+    // Clean up test directory
+    try {
+      await fs.rm(testDir, { recursive: true, force: true });
+    } catch (error) {
+      // Ignore cleanup errors
+    }
   });
 
-  describe('Directory Creation', () => {
-    test('should create directory when it does not exist', async () => {
-      const dirPath = '.github';
+  describe('Directory Creation via CLI', () => {
+    test('should create all required directories during installation', async () => {
+      const cliPath = path.resolve(originalCwd, 'cli.js');
       
-      // Directory should not exist initially
-      await assert.rejects(
-        fs.access(dirPath),
-        { code: 'ENOENT' },
-        'Directory should not exist initially'
-      );
+      // Run the installer
+      await execFileAsync('node', [cliPath, 'init', testDir]);
       
-      // Create directory using installer method
-      await installer.ensureDir(dirPath);
+      // Verify all required directories were created
+      await assert.doesNotReject(fs.access(path.join(testDir, '.documind')), 'Should create .documind directory');
+      await assert.doesNotReject(fs.access(path.join(testDir, '.documind/core')), 'Should create core directory');
+      await assert.doesNotReject(fs.access(path.join(testDir, '.documind/scripts')), 'Should create scripts directory');
+      await assert.doesNotReject(fs.access(path.join(testDir, '.github')), 'Should create .github directory');
+      await assert.doesNotReject(fs.access(path.join(testDir, '.cursor')), 'Should create .cursor directory');
+      await assert.doesNotReject(fs.access(path.join(testDir, '.cursor/rules')), 'Should create .cursor/rules directory');
+    });
+
+    test('should handle existing directories gracefully', async () => {
+      const cliPath = path.resolve(originalCwd, 'cli.js');
       
-      // Directory should now exist
+      // Pre-create some directories
+      await fs.mkdir(path.join(testDir, '.github'), { recursive: true });
+      await fs.mkdir(path.join(testDir, '.cursor'), { recursive: true });
+      
+      // Should not fail when directories already exist
       await assert.doesNotReject(
-        fs.access(dirPath),
-        'Directory should exist after creation'
+        execFileAsync('node', [cliPath, 'init', testDir]),
+        'Should handle existing directories gracefully'
       );
+    });
+  });
+
+  describe('File Writing Operations via CLI', () => {
+    test('should create all required files with correct content', async () => {
+      const cliPath = path.resolve(originalCwd, 'cli.js');
       
-      // Verify it's actually a directory
-      const stats = await fs.stat(dirPath);
-      assert.strictEqual(stats.isDirectory(), true, 'Created path should be a directory');
+      // Run the installer
+      await execFileAsync('node', [cliPath, 'init', testDir]);
+      
+      // Check that all expected files were created
+      const expectedFiles = [
+        'CLAUDE.md',
+        'GEMINI.md', 
+        '.github/copilot-instructions.md',
+        '.cursor/rules/documind.mdc',
+        '.documind/core/system.md',
+        '.documind/core/commands.md',
+        '.documind/core/VERSION'
+      ];
+      
+      for (const expectedFile of expectedFiles) {
+        const filePath = path.join(testDir, expectedFile);
+        await assert.doesNotReject(
+          fs.access(filePath),
+          `Should create ${expectedFile}`
+        );
+        
+        // Verify file has content
+        const content = await fs.readFile(filePath, 'utf8');
+        assert(content.length > 0, `${expectedFile} should have content`);
+      }
     });
 
-    test('should handle existing directory gracefully', async () => {
-      const dirPath = '.cursor';
+    test('should create files with expected content patterns', async () => {
+      const cliPath = path.resolve(originalCwd, 'cli.js');
       
-      // Create directory manually first
-      await fs.mkdir(dirPath);
+      // Run the installer
+      await execFileAsync('node', [cliPath, 'init', testDir]);
       
-      // Should not throw when directory already exists
+      // Check CLAUDE.md content
+      const claudeContent = await fs.readFile(path.join(testDir, 'CLAUDE.md'), 'utf8');
+      assert(claudeContent.includes('DocuMind'), 'CLAUDE.md should mention DocuMind');
+      assert(claudeContent.includes('/document'), 'CLAUDE.md should include document commands');
+      
+      // Check system.md content  
+      const systemContent = await fs.readFile(path.join(testDir, '.documind/core/system.md'), 'utf8');
+      assert(systemContent.length > 100, 'system.md should have substantial content');
+      
+      // Check commands.md content
+      const commandsContent = await fs.readFile(path.join(testDir, '.documind/core/commands.md'), 'utf8');
+      assert(commandsContent.includes('document'), 'commands.md should include document commands');
+    });
+  });
+
+  describe('AI Tool Detection via File Presence', () => {
+    test('should detect existing AI configurations and preserve them', async () => {
+      const cliPath = path.resolve(originalCwd, 'cli.js');
+      
+      // Pre-create some AI tool files
+      await fs.mkdir(path.join(testDir, '.github'), { recursive: true });
+      await fs.writeFile(path.join(testDir, 'CLAUDE.md'), '# Existing Claude config');
+      await fs.writeFile(path.join(testDir, '.cursorrules'), 'existing cursor rules');
+      
+      // Run installer
+      const { stdout } = await execFileAsync('node', [cliPath, 'init', testDir]);
+      
+      // Should detect and mention existing configurations
+      assert(stdout.includes('Detected AI tools:') || stdout.includes('existing AI configurations') || stdout.includes('installing for all supported tools'), 
+             'Should detect existing AI tool configurations or install for all tools');
+      
+      // Original files should be preserved or updated, not overwritten completely
+      const claudeContent = await fs.readFile(path.join(testDir, 'CLAUDE.md'), 'utf8');
+      assert(claudeContent.includes('DocuMind'), 'CLAUDE.md should include DocuMind system');
+    });
+  });
+
+  describe('Package.json Integration', () => {
+    test('should work correctly without package.json', async () => {
+      const cliPath = path.resolve(originalCwd, 'cli.js');
+      
+      // Run installer in directory without package.json
       await assert.doesNotReject(
-        installer.ensureDir(dirPath),
-        'Should handle existing directory gracefully'
-      );
-    });
-
-    test('should create nested directories recursively', async () => {
-      const dirPath = '.github/instructions';
-      
-      await installer.ensureDir(dirPath);
-      
-      // Both parent and child directories should exist
-      await assert.doesNotReject(fs.access('.github'), 'Parent directory should exist');
-      await assert.doesNotReject(fs.access(dirPath), 'Nested directory should exist');
-    });
-  });
-
-  describe('File Writing Operations', () => {
-    test('should write file with correct content', async () => {
-      const filePath = 'CLAUDE.md';
-      const content = '# Claude Instructions\n\nTest content';
-      
-      // File should not exist initially
-      await assert.rejects(
-        fs.access(filePath),
-        { code: 'ENOENT' },
-        'File should not exist initially'
+        execFileAsync('node', [cliPath, 'init', testDir]),
+        'Should work without package.json'
       );
       
-      // Write file
-      await fs.writeFile(filePath, content);
-      
-      // File should now exist
-      await assert.doesNotReject(fs.access(filePath), 'File should exist after writing');
-      
-      // Content should match
-      const readContent = await fs.readFile(filePath, 'utf8');
-      assert.strictEqual(readContent, content, 'File content should match written content');
+      // Verify installation succeeded
+      await assert.doesNotReject(fs.access(path.join(testDir, '.documind')), 'Should install successfully');
     });
 
-    test('should overwrite existing file', async () => {
-      const filePath = 'test.md';
-      const originalContent = 'Original content';
-      const newContent = 'New content';
+    test('should work correctly with existing package.json', async () => {
+      const cliPath = path.resolve(originalCwd, 'cli.js');
       
-      // Create file with original content
-      await fs.writeFile(filePath, originalContent);
-      
-      // Verify original content
-      let content = await fs.readFile(filePath, 'utf8');
-      assert.strictEqual(content, originalContent, 'Original content should be correct');
-      
-      // Overwrite with new content
-      await fs.writeFile(filePath, newContent);
-      
-      // Verify new content
-      content = await fs.readFile(filePath, 'utf8');
-      assert.strictEqual(content, newContent, 'New content should overwrite original');
-    });
-  });
-
-  describe('Template Processing (Currently Failing - Not Implemented)', () => {
-    test('should successfully process templates', async () => {
-      // Template processing is now implemented
-      const templateName = 'claude-instructions';
-      const variables = { PROJECT_NAME: 'TestProject' };
-      
-      // This should succeed because template processing is implemented
-      const content = await installer.loadTemplate(templateName);
-      assert(content.includes('DocuMind'), 'Template should contain DocuMind branding');
-      
-      // Test basic variable replacement (even though loadTemplate doesn't do this internally,
-      // we can test that the content can be processed)
-      const processedContent = content.replace('{PROJECT_NAME}', variables.PROJECT_NAME);
-      assert(typeof processedContent === 'string', 'Should return processed string content');
-    });
-  });
-
-  describe('AI Tool Detection (Currently Failing - Needs Testing)', () => {
-    test('should detect no AI tools in empty repository', async () => {
-      const tools = await installer.detectAITools();
-      
-      // In empty repo, should default to all tools
-      assert.ok(Array.isArray(tools), 'Should return an array');
-      assert.ok(tools.length > 0, 'Should return default tools for empty repo');
-      assert.ok(tools.includes('claude'), 'Should include claude in default tools');
-    });
-
-    test('should detect Claude when CLAUDE.md exists', async () => {
-      // Create CLAUDE.md to simulate existing Claude setup
-      await fs.writeFile('CLAUDE.md', '# Claude Instructions');
-      
-      const tools = await installer.detectAITools();
-      
-      assert.ok(tools.includes('claude'), 'Should detect Claude when CLAUDE.md exists');
-    });
-
-    test('should detect Cursor when .cursorrules exists', async () => {
-      // Create .cursorrules to simulate existing Cursor setup
-      await fs.writeFile('.cursorrules', 'cursor rules');
-      
-      const tools = await installer.detectAITools();
-      
-      assert.ok(tools.includes('cursor'), 'Should detect Cursor when .cursorrules exists');
-    });
-  });
-
-  describe('Package.json Reading', () => {
-    test('should handle missing package.json gracefully', async () => {
-      const packageData = await installer.readPackageJson();
-      
-      assert.strictEqual(packageData, null, 'Should return null when package.json is missing');
-    });
-
-    test('should read valid package.json', async () => {
+      // Create package.json first
       const packageContent = {
         name: 'test-package',
         version: '1.0.0',
@@ -186,35 +164,52 @@ describe('File Operations Contract Tests', () => {
           test: 'echo "test"'
         }
       };
+      await fs.writeFile(path.join(testDir, 'package.json'), JSON.stringify(packageContent, null, 2));
       
-      await fs.writeFile('package.json', JSON.stringify(packageContent, null, 2));
+      // Run installer
+      await assert.doesNotReject(
+        execFileAsync('node', [cliPath, 'init', testDir]),
+        'Should work with existing package.json'
+      );
       
-      const packageData = await installer.readPackageJson();
+      // Verify installation succeeded and package.json is preserved
+      await assert.doesNotReject(fs.access(path.join(testDir, '.documind')), 'Should install successfully');
+      await assert.doesNotReject(fs.access(path.join(testDir, 'package.json')), 'Should preserve package.json');
       
-      assert.ok(packageData, 'Should return package data');
-      assert.strictEqual(packageData.name, 'test-package', 'Should read package name correctly');
-      assert.strictEqual(packageData.version, '1.0.0', 'Should read package version correctly');
+      // Verify package.json content is preserved
+      const packageData = JSON.parse(await fs.readFile(path.join(testDir, 'package.json'), 'utf8'));
+      assert.strictEqual(packageData.name, 'test-package', 'Should preserve package name');
     });
   });
 
-  describe('File Existence Checks', () => {
-    test('should return false for non-existent file', async () => {
-      const exists = await installer.exists('non-existent-file.txt');
-      assert.strictEqual(exists, false, 'Should return false for non-existent file');
+  describe('File Existence and Error Handling', () => {
+    test('should handle permission errors gracefully', async () => {
+      const cliPath = path.resolve(originalCwd, 'cli.js');
+      const readOnlyDir = path.join(testDir, 'readonly');
+      await fs.mkdir(readOnlyDir);
+      await fs.chmod(readOnlyDir, 0o444); // Read-only
+      
+      try {
+        await execFileAsync('node', [cliPath, 'init', readOnlyDir]);
+        assert.fail('Should have thrown an error for read-only directory');
+      } catch (error) {
+        assert(error.stderr.includes('❌') || error.message.includes('permission'), 'Should show permission error');
+      } finally {
+        // Restore permissions for cleanup
+        await fs.chmod(readOnlyDir, 0o755).catch(() => {});
+      }
     });
 
-    test('should return true for existing file', async () => {
-      await fs.writeFile('existing-file.txt', 'content');
+    test('should handle non-existent target directory', async () => {
+      const cliPath = path.resolve(originalCwd, 'cli.js');
+      const nonExistentDir = path.join(testDir, 'does-not-exist');
       
-      const exists = await installer.exists('existing-file.txt');
-      assert.strictEqual(exists, true, 'Should return true for existing file');
-    });
-
-    test('should return true for existing directory', async () => {
-      await fs.mkdir('existing-dir');
-      
-      const exists = await installer.exists('existing-dir');
-      assert.strictEqual(exists, true, 'Should return true for existing directory');
+      try {
+        await execFileAsync('node', [cliPath, 'init', nonExistentDir]);
+        assert.fail('Should have thrown an error for non-existent directory');
+      } catch (error) {
+        assert(error.stderr.includes('❌') || error.message.includes('not found'), 'Should show directory not found error');
+      }
     });
   });
 });

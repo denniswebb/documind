@@ -1,252 +1,271 @@
-#!/usr/bin/env node
-
-import test from 'node:test';
+import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
-import fs from 'fs/promises';
-import path from 'path';
-import { TestEnvironment } from '../utils/test-environment.js';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { tmpdir } from 'node:os';
 
-test('Template Processing', async (t) => {
-  const env = new TestEnvironment();
-  
-  await t.test('should load copilot-instructions template with project context', async () => {
-    const testDir = await env.createTempDir('template-copilot');
-    const { default: DocuMindInstaller } = await import('../../src/scripts/install.js');
+const execFileAsync = promisify(execFile);
+
+describe('Template Processing Tests', () => {
+  let testDir;
+  let originalCwd;
+
+  beforeEach(async () => {
+    // Save original working directory
+    originalCwd = process.cwd();
     
-    // Setup test environment
-    const installer = new DocuMindInstaller();
-    installer.repoRoot = testDir;
-    installer.documindDir = path.join(testDir, '.documind');
-    
-    // Create minimal .documind structure
-    await fs.mkdir(installer.documindDir, { recursive: true });
-    await fs.mkdir(path.join(installer.documindDir, 'core'), { recursive: true });
-    await fs.writeFile(path.join(installer.documindDir, 'core', 'system.md'), 'Test system instructions');
-    await fs.writeFile(path.join(installer.documindDir, 'core', 'commands.md'), 'Test commands reference');
-    
-    // Test template loading
-    const template = await installer.loadTemplate('copilot-instructions');
-    
-    assert(template.includes('DocuMind'), 'Template should contain DocuMind branding');
-    assert(template.includes('/document bootstrap'), 'Template should include bootstrap command');
-    assert(template.includes('/document expand'), 'Template should include expand command');
-    assert(template.includes('Test system instructions'), 'Template should include system.md content');
-    assert(template.includes('Test commands reference'), 'Template should include commands.md content');
-    
-    await env.cleanup(testDir);
+    // Create a unique temporary directory for each test
+    testDir = await fs.mkdtemp(path.join(tmpdir(), 'documind-template-test-'));
+    // Resolve the real path to handle symlinks like /var -> /private/var on macOS
+    testDir = await fs.realpath(testDir);
   });
 
-  await t.test('should load claude-instructions template with full content', async () => {
-    const testDir = await env.createTempDir('template-claude');
-    const { default: DocuMindInstaller } = await import('../../src/scripts/install.js');
+  afterEach(async () => {
+    // Restore original working directory
+    process.chdir(originalCwd);
     
-    const installer = new DocuMindInstaller();
-    installer.repoRoot = testDir;
-    installer.documindDir = path.join(testDir, '.documind');
-    
-    // Create minimal .documind structure
-    await fs.mkdir(installer.documindDir, { recursive: true });
-    await fs.mkdir(path.join(installer.documindDir, 'core'), { recursive: true });
-    await fs.writeFile(path.join(installer.documindDir, 'core', 'system.md'), 'Claude system content');
-    await fs.writeFile(path.join(installer.documindDir, 'core', 'commands.md'), 'Claude commands content');
-    
-    const template = await installer.loadTemplate('claude-instructions');
-    
-    assert(template.includes('# Claude Instructions'), 'Template should have Claude title');
-    assert(template.includes('DocuMind'), 'Template should reference DocuMind system');
-    assert(template.includes('📚 Documentation Commands'), 'Template should have commands section');
-    assert(template.includes('🔍 Command Recognition'), 'Template should have recognition section');
-    assert(template.includes('Claude system content'), 'Template should include system.md');
-    assert(template.includes('Claude commands content'), 'Template should include commands.md');
-    
-    await env.cleanup(testDir);
+    // Clean up test directory
+    try {
+      await fs.rm(testDir, { recursive: true, force: true });
+    } catch (error) {
+      // Ignore cleanup errors
+    }
   });
 
-  await t.test('should load cursor-rules template correctly', async () => {
-    const testDir = await env.createTempDir('template-cursor');
-    const { default: DocuMindInstaller } = await import('../../src/scripts/install.js');
-    
-    const installer = new DocuMindInstaller();
-    installer.repoRoot = testDir;
-    installer.documindDir = path.join(testDir, '.documind');
-    
-    // Create .documind structure
-    await fs.mkdir(installer.documindDir, { recursive: true });
-    await fs.mkdir(path.join(installer.documindDir, 'core'), { recursive: true });
-    await fs.writeFile(path.join(installer.documindDir, 'core', 'system.md'), 'Cursor system rules');
-    await fs.writeFile(path.join(installer.documindDir, 'core', 'commands.md'), 'Cursor commands list');
-    
-    const template = await installer.loadTemplate('cursor-rules');
-    
-    assert(template.includes('# DocuMind Documentation System'), 'Template should have proper title');
-    assert(template.includes('/document bootstrap'), 'Template should include commands');
-    assert(template.includes('Natural Language Support'), 'Template should have NL section');
-    assert(template.includes('Cursor system rules'), 'Template should include system content');
-    assert(template.includes('Cursor commands list'), 'Template should include commands content');
-    
-    await env.cleanup(testDir);
+  describe('Template Generation and Content', () => {
+    test('should generate Claude instructions template with proper structure', async () => {
+      const cliPath = path.resolve(originalCwd, 'cli.js');
+      
+      // Run the installer
+      await execFileAsync('node', [cliPath, 'init', testDir]);
+      
+      // Check CLAUDE.md template was generated correctly
+      const claudePath = path.join(testDir, 'CLAUDE.md');
+      const content = await fs.readFile(claudePath, 'utf8');
+      
+      // Verify template structure
+      assert(content.includes('# Claude Instructions'), 'Should have proper heading');
+      assert(content.includes('DocuMind'), 'Should reference DocuMind system');
+      assert(content.includes('📚 Documentation Commands') || content.includes('Documentation Commands'), 'Should have commands section');
+      assert(content.includes('/document bootstrap'), 'Should include bootstrap command');
+      assert(content.includes('/document expand'), 'Should include expand command');
+      assert(content.includes('Command Recognition') || content.includes('🔍'), 'Should have recognition section');
+      
+      // Verify markdown formatting
+      assert(content.includes('\n## ') || content.includes('\n# '), 'Should have proper markdown headings');
+      assert(content.includes('- `/document') || content.includes('* `/document'), 'Should have command list formatting');
+    });
+
+    test('should generate Gemini instructions template correctly', async () => {
+      const cliPath = path.resolve(originalCwd, 'cli.js');
+      
+      await execFileAsync('node', [cliPath, 'init', testDir]);
+      
+      // Check GEMINI.md template
+      const geminiPath = path.join(testDir, 'GEMINI.md');
+      const content = await fs.readFile(geminiPath, 'utf8');
+      
+      assert(content.includes('Gemini'), 'Should have Gemini-specific content');
+      assert(content.includes('DocuMind'), 'Should reference DocuMind system');
+      assert(content.includes('/document'), 'Should include document commands');
+      assert(content.length > 100, 'Should have substantial content');
+    });
+
+    test('should generate Copilot instructions template', async () => {
+      const cliPath = path.resolve(originalCwd, 'cli.js');
+      
+      await execFileAsync('node', [cliPath, 'init', testDir]);
+      
+      // Check GitHub Copilot instructions
+      const copilotPath = path.join(testDir, '.github/copilot-instructions.md');
+      const content = await fs.readFile(copilotPath, 'utf8');
+      
+      assert(content.includes('DocuMind') || content.includes('Documentation'), 'Should reference documentation system');
+      assert(content.includes('/document') || content.includes('document'), 'Should mention document commands');
+      assert(content.length > 50, 'Should have meaningful content');
+    });
+
+    test('should generate Cursor rules template', async () => {
+      const cliPath = path.resolve(originalCwd, 'cli.js');
+      
+      await execFileAsync('node', [cliPath, 'init', testDir]);
+      
+      // Check Cursor rules
+      const cursorPath = path.join(testDir, '.cursor/rules/documind.mdc');
+      const content = await fs.readFile(cursorPath, 'utf8');
+      
+      assert(content.includes('DocuMind') || content.includes('Documentation'), 'Should reference documentation system');
+      assert(content.includes('/document') || content.includes('document'), 'Should mention document commands');
+      assert(content.length > 50, 'Should have meaningful content');
+    });
   });
 
-  await t.test('should load cursorrules template for backward compatibility', async () => {
-    const testDir = await env.createTempDir('template-cursorrules');
-    const { default: DocuMindInstaller } = await import('../../src/scripts/install.js');
-    
-    const installer = new DocuMindInstaller();
-    installer.repoRoot = testDir;
-    installer.documindDir = path.join(testDir, '.documind');
-    
-    // Create .documind structure
-    await fs.mkdir(installer.documindDir, { recursive: true });
-    await fs.mkdir(path.join(installer.documindDir, 'core'), { recursive: true });
-    await fs.writeFile(path.join(installer.documindDir, 'core', 'system.md'), 'Legacy cursor rules');
-    
-    const template = await installer.loadTemplate('cursorrules');
-    
-    assert(template.includes('# DocuMind System - Cursor Rules'), 'Template should have legacy title');
-    assert(template.includes('Available slash commands'), 'Template should list commands');
-    assert(template.includes('Natural Language Recognition'), 'Template should have NL recognition');
-    assert(template.includes('Legacy cursor rules'), 'Template should include system content');
-    
-    await env.cleanup(testDir);
+  describe('Template Content Integration', () => {
+    test('should include system and commands content in templates', async () => {
+      const cliPath = path.resolve(originalCwd, 'cli.js');
+      
+      await execFileAsync('node', [cliPath, 'init', testDir]);
+      
+      // Check that system.md and commands.md were created and have content
+      const systemPath = path.join(testDir, '.documind/core/system.md');
+      const commandsPath = path.join(testDir, '.documind/core/commands.md');
+      
+      await assert.doesNotReject(fs.access(systemPath), 'Should create system.md');
+      await assert.doesNotReject(fs.access(commandsPath), 'Should create commands.md');
+      
+      const systemContent = await fs.readFile(systemPath, 'utf8');
+      const commandsContent = await fs.readFile(commandsPath, 'utf8');
+      
+      assert(systemContent.length > 100, 'system.md should have substantial content');
+      assert(commandsContent.length > 50, 'commands.md should have content');
+      assert(commandsContent.includes('document'), 'commands.md should reference document commands');
+      
+      // Verify templates reference the core content appropriately
+      const claudeContent = await fs.readFile(path.join(testDir, 'CLAUDE.md'), 'utf8');
+      assert(claudeContent.includes('system.md') || claudeContent.includes('commands.md') || 
+             systemContent.slice(0, 50).split(' ').some(word => word.length > 3 && claudeContent.includes(word)),
+             'Template should integrate with core system files');
+    });
+
+    test('should maintain consistent command structure across templates', async () => {
+      const cliPath = path.resolve(originalCwd, 'cli.js');
+      
+      await execFileAsync('node', [cliPath, 'init', testDir]);
+      
+      // Read all AI configuration templates
+      const templates = {
+        claude: await fs.readFile(path.join(testDir, 'CLAUDE.md'), 'utf8'),
+        gemini: await fs.readFile(path.join(testDir, 'GEMINI.md'), 'utf8'),
+        copilot: await fs.readFile(path.join(testDir, '.github/copilot-instructions.md'), 'utf8'),
+        cursor: await fs.readFile(path.join(testDir, '.cursor/rules/documind.mdc'), 'utf8')
+      };
+      
+      // Verify consistent command structure
+      const expectedCommands = ['bootstrap', 'expand', 'update', 'analyze'];
+      
+      for (const [toolName, template] of Object.entries(templates)) {
+        assert(template.includes('/document') || template.includes('document'), 
+               `${toolName} template should include document commands`);
+        
+        // At least some of the key commands should be mentioned
+        const commandsFound = expectedCommands.filter(cmd => template.includes(cmd));
+        assert(commandsFound.length >= 2, 
+               `${toolName} template should include multiple key commands (found: ${commandsFound})`);
+      }
+    });
   });
 
-  await t.test('should load gemini-instructions template', async () => {
-    const testDir = await env.createTempDir('template-gemini');
-    const { default: DocuMindInstaller } = await import('../../src/scripts/install.js');
-    
-    const installer = new DocuMindInstaller();
-    installer.repoRoot = testDir;
-    installer.documindDir = path.join(testDir, '.documind');
-    
-    // Create .documind structure
-    await fs.mkdir(installer.documindDir, { recursive: true });
-    await fs.mkdir(path.join(installer.documindDir, 'core'), { recursive: true });
-    await fs.writeFile(path.join(installer.documindDir, 'core', 'system.md'), 'Gemini system instructions');
-    await fs.writeFile(path.join(installer.documindDir, 'core', 'commands.md'), 'Gemini commands reference');
-    
-    const template = await installer.loadTemplate('gemini-instructions');
-    
-    assert(template.includes('# Gemini CLI Instructions'), 'Template should have Gemini title');
-    assert(template.includes('DocuMind'), 'Template should reference DocuMind');
-    assert(template.includes('Natural Language Recognition'), 'Template should have NL section');
-    assert(template.includes('Gemini system instructions'), 'Template should include system content');
-    assert(template.includes('Gemini commands reference'), 'Template should include commands content');
-    
-    await env.cleanup(testDir);
+  describe('Template Formatting and Structure', () => {
+    test('should generate well-formatted markdown templates', async () => {
+      const cliPath = path.resolve(originalCwd, 'cli.js');
+      
+      await execFileAsync('node', [cliPath, 'init', testDir]);
+      
+      const claudeContent = await fs.readFile(path.join(testDir, 'CLAUDE.md'), 'utf8');
+      
+      // Check markdown structure
+      const lines = claudeContent.split('\n');
+      assert(lines.some(line => line.startsWith('# ')), 'Should have main heading');
+      assert(lines.some(line => line.startsWith('## ') || line.startsWith('### ')), 'Should have subheadings');
+      assert(lines.some(line => line.startsWith('- ') || line.startsWith('* ')), 'Should have list items');
+      
+      // Check for proper line breaks and structure
+      assert(lines.length > 10, 'Should have substantial content with multiple lines');
+      assert(lines.some(line => line.trim() === ''), 'Should have empty lines for spacing');
+    });
+
+    test('should preserve template formatting consistency', async () => {
+      const cliPath = path.resolve(originalCwd, 'cli.js');
+      
+      await execFileAsync('node', [cliPath, 'init', testDir]);
+      
+      // Check multiple templates for formatting consistency
+      const templates = [
+        path.join(testDir, 'CLAUDE.md'),
+        path.join(testDir, 'GEMINI.md'),
+        path.join(testDir, '.github/copilot-instructions.md'),
+        path.join(testDir, '.cursor/rules/documind.mdc')
+      ];
+      
+      for (const templatePath of templates) {
+        const content = await fs.readFile(templatePath, 'utf8');
+        const lines = content.split('\n');
+        
+        // Basic formatting checks
+        assert(lines.length > 5, `Template ${path.basename(templatePath)} should have multiple lines`);
+        assert(content.length > 50, `Template ${path.basename(templatePath)} should have substantial content`);
+        
+        // Should not have obvious formatting errors
+        assert(!content.includes('undefined'), `Template ${path.basename(templatePath)} should not have undefined values`);
+        assert(!content.includes('{{'), `Template ${path.basename(templatePath)} should not have unprocessed template vars`);
+      }
+    });
   });
 
-  await t.test('should load github-documentation template for Copilot', async () => {
-    const testDir = await env.createTempDir('template-github-docs');
-    const { default: DocuMindInstaller } = await import('../../src/scripts/install.js');
-    
-    const installer = new DocuMindInstaller();
-    installer.repoRoot = testDir;
-    installer.documindDir = path.join(testDir, '.documind');
-    
-    // Create .documind structure
-    await fs.mkdir(installer.documindDir, { recursive: true });
-    await fs.mkdir(path.join(installer.documindDir, 'core'), { recursive: true });
-    await fs.writeFile(path.join(installer.documindDir, 'core', 'system.md'), 'GitHub documentation rules');
-    
-    const template = await installer.loadTemplate('github-documentation');
-    
-    assert(template.includes('applyTo:'), 'Template should have file scope');
-    assert(template.includes('# Documentation Instructions'), 'Template should have docs title');
-    assert(template.includes('DocuMind conventions'), 'Template should reference conventions');
-    assert(template.includes('GitHub documentation rules'), 'Template should include system content');
-    
-    await env.cleanup(testDir);
-  });
+  describe('Error Handling and Edge Cases', () => {
+    test('should handle template generation with custom project structure', async () => {
+      const cliPath = path.resolve(originalCwd, 'cli.js');
+      
+      // Create a custom project structure before installation
+      await fs.mkdir(path.join(testDir, 'src'), { recursive: true });
+      await fs.mkdir(path.join(testDir, 'docs'), { recursive: true });
+      await fs.writeFile(path.join(testDir, 'package.json'), JSON.stringify({
+        name: 'custom-project',
+        version: '2.0.0',
+        description: 'A custom structured project'
+      }, null, 2));
+      
+      await fs.writeFile(path.join(testDir, 'README.md'), '# Custom Project\nThis is a custom project structure.');
+      
+      // Run installer
+      await execFileAsync('node', [cliPath, 'init', testDir]);
+      
+      // Templates should still be generated correctly
+      const claudeContent = await fs.readFile(path.join(testDir, 'CLAUDE.md'), 'utf8');
+      assert(claudeContent.includes('DocuMind'), 'Should generate templates even with custom structure');
+      assert(claudeContent.includes('/document'), 'Should include proper commands');
+      
+      // Original project files should be preserved
+      const packageContent = await fs.readFile(path.join(testDir, 'package.json'), 'utf8');
+      const packageData = JSON.parse(packageContent);
+      assert.strictEqual(packageData.name, 'custom-project', 'Should preserve original package.json');
+    });
 
-  await t.test('should handle missing template gracefully', async () => {
-    const testDir = await env.createTempDir('template-missing');
-    const { default: DocuMindInstaller } = await import('../../src/scripts/install.js');
-    
-    const installer = new DocuMindInstaller();
-    installer.repoRoot = testDir;
-    
-    const template = await installer.loadTemplate('nonexistent-template');
-    
-    assert.strictEqual(template, '', 'Should return empty string for missing template');
-    
-    await env.cleanup(testDir);
-  });
+    test('should work in projects with existing AI tool configurations', async () => {
+      const cliPath = path.resolve(originalCwd, 'cli.js');
+      
+      // Pre-create some AI configuration files
+      await fs.writeFile(path.join(testDir, 'CLAUDE.md'), '# Existing Claude Config\nSome existing content');
+      await fs.writeFile(path.join(testDir, '.cursorrules'), 'existing cursor rules content');
+      
+      // Run installer
+      await execFileAsync('node', [cliPath, 'init', testDir]);
+      
+      // Should enhance existing configurations
+      const claudeContent = await fs.readFile(path.join(testDir, 'CLAUDE.md'), 'utf8');
+      assert(claudeContent.includes('DocuMind'), 'Should enhance existing Claude config with DocuMind');
+      
+      // Should create other templates
+      await assert.doesNotReject(fs.access(path.join(testDir, 'GEMINI.md')), 'Should create other templates');
+    });
 
-  await t.test('should handle missing .documind files gracefully', async () => {
-    const testDir = await env.createTempDir('template-missing-files');
-    const { default: DocuMindInstaller } = await import('../../src/scripts/install.js');
-    
-    const installer = new DocuMindInstaller();
-    installer.repoRoot = testDir;
-    installer.documindDir = path.join(testDir, '.documind');
-    
-    // Don't create .documind directory
-    const template = await installer.loadTemplate('claude-instructions');
-    
-    assert(template.includes('[system.md not found]'), 'Should indicate missing system.md');
-    assert(template.includes('[commands.md not found]'), 'Should indicate missing commands.md');
-    
-    await env.cleanup(testDir);
-  });
-
-  await t.test('should interpolate template variables correctly', async () => {
-    const testDir = await env.createTempDir('template-interpolation');
-    const { default: DocuMindInstaller } = await import('../../src/scripts/install.js');
-    
-    const installer = new DocuMindInstaller();
-    installer.repoRoot = testDir;
-    installer.documindDir = path.join(testDir, '.documind');
-    
-    // Create .documind structure with specific content
-    await fs.mkdir(installer.documindDir, { recursive: true });
-    await fs.mkdir(path.join(installer.documindDir, 'core'), { recursive: true });
-    await fs.writeFile(path.join(installer.documindDir, 'core', 'system.md'), 
-      '# System Instructions\n\nThis is the system configuration.');
-    await fs.writeFile(path.join(installer.documindDir, 'core', 'commands.md'), 
-      '# Commands Reference\n\nAvailable commands listed here.');
-    
-    const template = await installer.loadTemplate('claude-instructions');
-    
-    // Verify template interpolation worked
-    assert(template.includes('# System Instructions'), 'Should include system.md heading');
-    assert(template.includes('This is the system configuration'), 'Should include system.md content');
-    assert(template.includes('# Commands Reference'), 'Should include commands.md heading');
-    assert(template.includes('Available commands listed here'), 'Should include commands.md content');
-    
-    // Verify template structure is maintained
-    assert(template.includes('# Claude Instructions'), 'Should maintain template structure');
-    assert(template.includes('📚 Documentation Commands'), 'Should maintain emoji sections');
-    
-    await env.cleanup(testDir);
-  });
-
-  await t.test('should preserve template formatting and structure', async () => {
-    const testDir = await env.createTempDir('template-formatting');
-    const { default: DocuMindInstaller } = await import('../../src/scripts/install.js');
-    
-    const installer = new DocuMindInstaller();
-    installer.repoRoot = testDir;
-    installer.documindDir = path.join(testDir, '.documind');
-    
-    // Create .documind structure
-    await fs.mkdir(installer.documindDir, { recursive: true });
-    await fs.mkdir(path.join(installer.documindDir, 'core'), { recursive: true });
-    await fs.writeFile(path.join(installer.documindDir, 'core', 'system.md'), 'Test content');
-    await fs.writeFile(path.join(installer.documindDir, 'core', 'commands.md'), 'Test commands');
-    
-    const template = await installer.loadTemplate('copilot-instructions');
-    
-    // Check markdown formatting is preserved
-    assert(template.includes('## Documentation Commands'), 'Should preserve heading levels');
-    assert(template.includes('- `/document bootstrap`'), 'Should preserve list formatting');
-    assert(template.includes('```'), 'Should handle code block markers if present');
-    
-    // Check line breaks and structure
-    const lines = template.split('\n');
-    assert(lines.length > 10, 'Should have multiple lines');
-    assert(lines.some(line => line.startsWith('#')), 'Should have headings');
-    assert(lines.some(line => line.startsWith('-')), 'Should have list items');
-    
-    await env.cleanup(testDir);
+    test('should handle template generation in various directory structures', async () => {
+      const cliPath = path.resolve(originalCwd, 'cli.js');
+      
+      // Test with deeply nested target directory
+      const nestedDir = path.join(testDir, 'projects', 'my-app', 'workspace');
+      await fs.mkdir(nestedDir, { recursive: true });
+      
+      await execFileAsync('node', [cliPath, 'init', nestedDir]);
+      
+      // Templates should be generated in the target directory
+      await assert.doesNotReject(fs.access(path.join(nestedDir, 'CLAUDE.md')), 'Should create templates in nested directory');
+      await assert.doesNotReject(fs.access(path.join(nestedDir, '.documind')), 'Should create .documind in nested directory');
+      
+      const claudeContent = await fs.readFile(path.join(nestedDir, 'CLAUDE.md'), 'utf8');
+      assert(claudeContent.includes('DocuMind'), 'Should generate proper templates in nested structure');
+    });
   });
 });

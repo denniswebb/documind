@@ -132,8 +132,8 @@ class AIDetectionTestEnvironment {
   }
 
   async copyDocuMindScripts() {
-    // Copy the actual DocuMind scripts
-    const sourceScriptsDir = path.join(process.cwd(), '.documind', 'scripts');
+    // Copy the actual DocuMind scripts from src/ (development mode)
+    const sourceScriptsDir = path.join(process.cwd(), 'src', 'scripts');
     const targetScriptsDir = path.join(this.repoRoot, '.documind', 'scripts');
     
     await fs.mkdir(targetScriptsDir, { recursive: true });
@@ -146,24 +146,55 @@ class AIDetectionTestEnvironment {
     }
 
     // Copy templates if they exist
-    const sourceTemplatesDir = path.join(process.cwd(), '.documind', 'templates');
+    const sourceTemplatesDir = path.join(process.cwd(), 'src', 'templates');
     const targetTemplatesDir = path.join(this.repoRoot, '.documind', 'templates');
     
     try {
       await fs.access(sourceTemplatesDir);
       await fs.mkdir(targetTemplatesDir, { recursive: true });
       
-      const templateFiles = await fs.readdir(sourceTemplatesDir);
-      for (const file of templateFiles) {
-        const sourceFile = path.join(sourceTemplatesDir, file);
-        const targetFile = path.join(targetTemplatesDir, file);
+      // Recursively copy templates directory
+      await this.copyDirectory(sourceTemplatesDir, targetTemplatesDir);
+    } catch (error) {
+      console.log('Templates directory not found, skipping...');
+    }
+
+    // Also copy the core directory
+    const sourceCoreDir = path.join(process.cwd(), 'src', 'core');
+    const targetCoreDir = path.join(this.repoRoot, '.documind', 'core');
+    
+    try {
+      await fs.access(sourceCoreDir);
+      await fs.mkdir(targetCoreDir, { recursive: true });
+      
+      const coreFiles = await fs.readdir(sourceCoreDir);
+      for (const file of coreFiles) {
+        const sourceFile = path.join(sourceCoreDir, file);
+        const targetFile = path.join(targetCoreDir, file);
         const stat = await fs.stat(sourceFile);
         if (stat.isFile()) {
           await fs.copyFile(sourceFile, targetFile);
         }
       }
     } catch (error) {
-      console.log('Templates directory not found, skipping...');
+      console.log('Core directory not found, skipping...');
+    }
+  }
+
+  async copyDirectory(source, dest) {
+    await fs.mkdir(dest, { recursive: true });
+    
+    const entries = await fs.readdir(source, { withFileTypes: true });
+    
+    for (const entry of entries) {
+      const sourcePath = path.join(source, entry.name);
+      const destPath = path.join(dest, entry.name);
+      
+      if (entry.isDirectory()) {
+        await this.copyDirectory(sourcePath, destPath);
+      } else {
+        await fs.copyFile(sourcePath, destPath);
+      }
     }
   }
 

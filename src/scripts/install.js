@@ -2,6 +2,7 @@
 
 import fs from 'fs/promises';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 class DocuMindInstaller {
   constructor() {
@@ -12,7 +13,7 @@ class DocuMindInstaller {
 
   findSrcDir() {
     // Find the src directory relative to this script
-    const scriptDir = path.dirname(new URL(import.meta.url).pathname);
+    const scriptDir = path.dirname(fileURLToPath(import.meta.url));
     return path.resolve(scriptDir, '..');
   }
 
@@ -74,30 +75,33 @@ class DocuMindInstaller {
   }
   
   async detectAITools() {
-    const tools = [];
+    const detected = [];
     
     // Check for existing AI configurations
-    if (await this.exists('.github')) tools.push('copilot');
-    if (await this.exists('.cursor')) tools.push('cursor');
+    if (await this.exists('.github')) detected.push('copilot');
+    if (await this.exists('.cursor')) detected.push('cursor');
     
     // Check for common AI-related files
-    if (await this.exists('CLAUDE.md')) tools.push('claude');
+    if (await this.exists('CLAUDE.md')) detected.push('claude');
     
     // Check for Gemini CLI (look for gemini config or usage)
     const packageJson = await this.readPackageJson();
     if (packageJson && packageJson.scripts) {
       const scripts = Object.values(packageJson.scripts).join(' ');
-      if (scripts.includes('gemini')) tools.push('gemini');
+      if (scripts.includes('gemini')) detected.push('gemini');
     }
     
-    // Default: install for common tools if none detected
-    if (tools.length === 0) {
-      tools.push('copilot', 'claude', 'cursor', 'gemini');
+    // Always install for all supported tools (but preserve existing configurations)
+    const tools = ['copilot', 'claude', 'cursor', 'gemini'];
+    
+    if (detected.length > 0) {
+      console.log(`  🔍 Detected existing AI tools: ${detected.join(', ')}`);
+      console.log('  📦 Installing for all supported tools while preserving existing configurations');
+    } else {
       console.log('  ℹ️  No existing AI configurations found, installing for all supported tools');
     }
     
-    // Remove duplicates
-    return [...new Set(tools)];
+    return tools;
   }
   
   async generateInstructionFile(tool) {
@@ -254,7 +258,8 @@ class DocuMindInstaller {
 }
 
 // CLI interface
-if (process.argv[1] === new URL(import.meta.url).pathname) {
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  console.log('DEBUG: Installing DocuMind script called directly');
   const installer = new DocuMindInstaller();
   installer.install().catch(error => {
     console.error('Installation failed:', error);
