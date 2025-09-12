@@ -14,7 +14,7 @@ describe('Command Generation Tests', () => {
 
   beforeEach(async () => {
     // Save original working directory
-    originalCwd = process.cwd();
+    originalCwd = process.cwd() || path.resolve('.');
     
     // Create a unique temporary directory for each test
     testDir = await fs.mkdtemp(path.join(tmpdir(), 'documind-commands-test-'));
