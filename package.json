@@ -1,13 +1,29 @@
 {
   "name": "@documind/core",
   "version": "1.0.0",
+  "type": "module",
   "description": "IDE-native documentation system with AI-powered slash commands",
   "main": "index.js",
   "bin": {
     "documind": "./cli.js"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test tests/unit/*.test.js",
+    "test:integration": "node --test tests/integration/*.test.js",
+    "test:coverage": "node --test --experimental-test-coverage tests/**/*.test.js",
+    "test:coverage:lcov": "node --test --experimental-test-coverage --test-reporter=lcov tests/**/*.test.js > coverage/lcov.info",
+    "test:coverage:html": "node --test --experimental-test-coverage --test-reporter=spec tests/**/*.test.js && mkdir -p coverage",
+    "test:all": "npm test && npm run test:integration",
+    "test:watch": "node --test --watch tests/unit/*.test.js",
+    "test:matrix": "npm run test:node16 && npm run test:node18 && npm run test:node20 && npm run test:node21",
+    "test:node16": "NODE_VERSION=16 npm run test:all",
+    "test:node18": "NODE_VERSION=18 npm run test:all", 
+    "test:node20": "NODE_VERSION=20 npm run test:all",
+    "test:node21": "NODE_VERSION=21 npm run test:all",
+    "test:performance": "node --test tests/performance/*.test.js",
+    "coverage:check": "node --test --experimental-test-coverage tests/**/*.test.js | grep -E 'Coverage|%'",
+    "coverage:validate": "node tests/coverage-validation.js",
+    "coverage:report": "npm run test:coverage && npm run coverage:validate",
     "install": "node .documind/scripts/install.js",
     "update": "node .documind/scripts/update.js",
     "version": "node -e \"console.log(require('./package.json').version)\""

@@ -1,5 +1,10 @@
 # DocuMind 🧠
 
+[![Test Suite](https://github.com/denniswebb/documind/actions/workflows/test.yml/badge.svg)](https://github.com/denniswebb/documind/actions/workflows/test.yml)
+[![Coverage](https://img.shields.io/badge/coverage-90%25-brightgreen)](./coverage/coverage-summary.html)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen)](https://nodejs.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 **IDE-Native Documentation System with AI-Powered Slash Commands**
 
 DocuMind transforms how you document your projects by enabling documentation commands directly in your IDE through AI assistants. No external tools, no separate applications - just natural documentation commands that work where you code.
@@ -226,6 +231,98 @@ documind version
 
 # Update from local development
 documind update --local /path/to/documind/source
+```
+
+## 🧪 Testing
+
+DocuMind includes comprehensive testing with Node.js built-in test runner and GitHub Actions CI/CD.
+
+### Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run specific test suites
+npm run test:unit          # Unit tests only
+npm run test:integration   # Integration tests only
+npm run test:performance   # Performance tests only
+
+# Run tests with coverage
+npm run test:coverage
+
+# Validate coverage thresholds
+npm run coverage:validate
+
+# Generate coverage reports
+npm run coverage:report
+```
+
+### Test Structure
+
+```
+tests/
+├── unit/                  # Unit tests for core functionality
+│   ├── install.test.js           # Installation script tests
+│   ├── generate-commands.test.js # Command generation tests
+│   ├── update.test.js             # Update script tests
+│   ├── template-processing.test.js # Template system tests
+│   └── gitignore-operations.test.js # Git integration tests
+│
+├── integration/          # Integration and end-to-end tests
+│   ├── fresh-install.test.js      # Fresh installation workflow
+│   ├── ai-detection.test.js       # AI tool detection tests
+│   ├── update-workflow.test.js    # Update process tests
+│   ├── error-handling.test.js     # Error scenario tests
+│   ├── full-deployment.test.js    # Complete deployment validation
+│   └── platform-compatibility.test.js # Cross-platform tests
+│
+├── performance/          # Performance and speed tests
+│   └── install-speed.test.js      # Installation speed benchmarks
+│
+└── utils/                # Test utilities and helpers
+    ├── test-environment.js        # Test environment setup
+    ├── mock-repo.js               # Mock repository generator
+    └── assertions.js              # Custom test assertions
+```
+
+### Coverage Requirements
+
+- **Lines**: ≥90%
+- **Functions**: ≥90% 
+- **Branches**: ≥80%
+- **Statements**: ≥90%
+
+### CI/CD Pipeline
+
+Our GitHub Actions workflow tests across:
+
+- **Node.js versions**: 16.x, 18.x, 20.x, 21.x
+- **Operating systems**: Ubuntu, Windows, macOS
+- **Test categories**: Unit, integration, performance
+- **Quality checks**: Linting, security audit, coverage validation
+
+### Performance Benchmarks
+
+- **Small projects**: <5 seconds installation
+- **Medium projects**: <15 seconds installation  
+- **Large projects**: <30 seconds installation
+- **Updates**: <5 seconds
+
+### Local Development Testing
+
+```bash
+# Run tests in watch mode
+npm run test:watch
+
+# Test against multiple Node.js versions
+npm run test:matrix
+
+# Performance testing
+npm run test:performance
+
+# Coverage validation
+npm run coverage:validate
 ```
 
 ## 🎯 Design Principles
