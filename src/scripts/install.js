@@ -5,24 +5,134 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 class DocuMindInstaller {
-  constructor() {
+  constructor(options = {}) {
     this.repoRoot = process.cwd() || path.resolve('.');
     this.documindDir = path.join(this.repoRoot, '.documind');
-    this.srcDir = this.findSrcDir();
+    this.sourceOptions = options.source || {};
+    this.debug = options.debug || false;
+    this.srcDir = null; // Will be set based on source type
+    
+    if (this.debug) {
+      console.log('🐛 DEBUG: Installer constructor');
+      console.log('  repoRoot:', this.repoRoot);
+      console.log('  documindDir:', this.documindDir);
+      console.log('  sourceOptions:', this.sourceOptions);
+    }
   }
 
-  findSrcDir() {
-    // Find the src directory relative to this script
+  async resolveSource() {
+    const { type, path: sourcePath, version, ref } = this.sourceOptions;
+    
+    if (this.debug) {
+      console.log('🐛 DEBUG: resolveSource()');
+      console.log('  sourceOptions:', this.sourceOptions);
+      console.log('  type:', type);
+    }
+    
+    switch (type) {
+      case 'local':
+        return this.resolveLocalSource(sourcePath);
+      case 'git':
+        return this.resolveGitSource(ref || 'main');
+      case 'release':
+        return this.resolveReleaseSource(version || 'latest');
+      default:
+        // Default: try local (development), then fallback to latest release
+        return this.resolveDefaultSource();
+    }
+  }
+  
+  async resolveLocalSource(localPath) {
+    if (!localPath) {
+      throw new Error('Local source path is required when using --local');
+    }
+    
+    const resolvedPath = path.resolve(localPath);
+    console.log(`  📦 Using local source: ${resolvedPath}`);
+    
+    if (this.debug) {
+      console.log('🐛 DEBUG: resolveLocalSource()');
+      console.log('  localPath:', localPath);
+      console.log('  resolvedPath:', resolvedPath);
+    }
+    
+    // Verify the directory structure
+    await this.validateSourceStructure(resolvedPath);
+    return resolvedPath;
+  }
+  
+  async resolveGitSource(ref) {
+    console.log(`  🌐 Downloading from Git ref: ${ref}`);
+    // TODO: Implement git source downloading
+    throw new Error('Git source not yet implemented');
+  }
+  
+  async resolveReleaseSource(version) {
+    console.log(`  📦 Downloading release: ${version}`);
+    // TODO: Implement GitHub releases downloading
+    throw new Error('Release source not yet implemented');
+  }
+  
+  async resolveDefaultSource() {
+    // Try to detect if we're in development mode
     const scriptDir = path.dirname(fileURLToPath(import.meta.url));
-    return path.resolve(scriptDir, '..');
+    const developmentSrc = path.resolve(scriptDir, '..');
+    
+    if (this.debug) {
+      console.log('🐛 DEBUG: resolveDefaultSource()');
+      console.log('  import.meta.url:', import.meta.url);
+      console.log('  scriptDir:', scriptDir);
+      console.log('  developmentSrc:', developmentSrc);
+    }
+    
+    try {
+      await this.validateSourceStructure(developmentSrc);
+      console.log(`  📦 Using development source: ${developmentSrc}`);
+      return developmentSrc;
+    } catch {
+      // Fall back to downloading latest release
+      console.log(`  📦 Development source not found, downloading latest release`);
+      return this.resolveReleaseSource('latest');
+    }
+  }
+  
+  async validateSourceStructure(srcPath) {
+    const expectedCore = path.join(srcPath, 'core');
+    const expectedTemplates = path.join(srcPath, 'templates');
+    
+    try {
+      await fs.access(expectedCore);
+      await fs.access(expectedTemplates);
+    } catch (error) {
+      throw new Error(`Invalid source directory: ${srcPath}. Missing core/ or templates/ directories.`);
+    }
   }
 
   async copyDocuMindCore() {
     // Copy entire src/ directory to target's .documind/
+    if (this.debug) {
+      console.log('🐛 DEBUG: copyDocuMindCore()');
+      console.log('  srcDir:', this.srcDir);
+      console.log('  documindDir:', this.documindDir);
+    }
     await this.copyDirectory(this.srcDir, this.documindDir);
   }
 
   async copyDirectory(src, dest) {
+    if (this.debug) {
+      console.log('🐛 DEBUG: copyDirectory()');
+      console.log('  src:', src);
+      console.log('  dest:', dest);
+    }
+    
+    // Always log suspicious paths
+    if (src.includes('/private/tmp/') || dest.includes('/private/tmp/')) {
+      console.log('🚨 WARNING: Suspicious path detected in copyDirectory!');
+      console.log('  src:', src);
+      console.log('  dest:', dest);
+      console.trace('Stack trace:');
+    }
+    
     await this.ensureDir(path.dirname(dest));
     
     const entries = await fs.readdir(src, { withFileTypes: true });
@@ -30,6 +140,12 @@ class DocuMindInstaller {
     for (const entry of entries) {
       const srcPath = path.join(src, entry.name);
       const destPath = path.join(dest, entry.name);
+      
+      if (this.debug) {
+        console.log('🐛 DEBUG:   copying:', entry.name, entry.isDirectory() ? '(directory)' : '(file)');
+        console.log('🐛 DEBUG:     from:', srcPath);
+        console.log('🐛 DEBUG:     to:', destPath);
+      }
       
       if (entry.isDirectory()) {
         await this.copyDirectory(srcPath, destPath);
@@ -44,9 +160,24 @@ class DocuMindInstaller {
     console.log('🧠 Installing DocuMind...');
     
     try {
-      // 1. Copy src/ to .documind/ directory
+      if (this.debug) {
+        console.log('🐛 DEBUG: install() starting');
+      }
+      
+      // 1. Resolve source directory based on options
+      this.srcDir = await this.resolveSource();
+      
+      if (this.debug) {
+        console.log('🐛 DEBUG: install() - source resolved, srcDir:', this.srcDir);
+      }
+      
+      // 2. Copy src/ to .documind/ directory
       await this.copyDocuMindCore();
       console.log('  ✓ Copied DocuMind core system');
+      
+      if (this.debug) {
+        console.log('🐛 DEBUG: install() - core copied');
+      }
       
       // 2. Detect which AI tools are in use
       const detected = await this.detectAITools();
@@ -71,6 +202,10 @@ class DocuMindInstaller {
     } catch (error) {
       console.error('❌ Installation failed:', error.message);
       process.exit(1);
+    }
+    
+    if (this.debug) {
+      console.log('🐛 DEBUG: install() completed');
     }
   }
   
@@ -148,9 +283,24 @@ class DocuMindInstaller {
   }
   
   async registerClaudeCommands() {
-    // Use the CommandGenerator to create the actual slash commands
-    const CommandGenerator = (await import('./generate-commands.js')).default;
+    // Use the CommandGenerator from the source directory to avoid path issues
+    const commandsPath = path.join(this.srcDir, 'scripts', 'generate-commands.js');
+    
+    if (this.debug) {
+      console.log('🐛 DEBUG: registerClaudeCommands()');
+      console.log('  importing from source:', commandsPath);
+      console.log('  target repoRoot:', this.repoRoot);
+    }
+    
+    const CommandGenerator = (await import(commandsPath)).default;
+    
+    // Create a generator with explicit paths to avoid process.cwd() issues
     const generator = new CommandGenerator();
+    
+    // Override the repoRoot to use our target directory instead of process.cwd()
+    generator.repoRoot = this.repoRoot;
+    generator.documindDir = this.documindDir;
+    
     await generator.generateClaudeCommands();
   }
   

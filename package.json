@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "description": "IDE-native documentation system with AI-powered slash commands",
-  "main": "index.js",
+  "main": "install.js",
   "bin": {
-    "documind": "./cli.js"
+    "documind": "./install.js"
   },
   "scripts": {
     "test": "node --test tests/unit/*.test.js",
@@ -54,7 +54,7 @@
   },
   "files": [
     ".documind/",
-    "cli.js",
+    "install.js",
     "index.js",
     "README.md",
     "LICENSE"
