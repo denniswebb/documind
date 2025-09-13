@@ -1,5 +1,10 @@
 # DocuMind 🧠
 
+[![Test Suite](https://github.com/denniswebb/documind/actions/workflows/test.yml/badge.svg)](https://github.com/denniswebb/documind/actions/workflows/test.yml)
+[![Coverage](https://img.shields.io/badge/coverage-90%25-brightgreen)](./coverage/coverage-summary.html)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen)](https://nodejs.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 **IDE-Native Documentation System with AI-Powered Slash Commands**
 
 DocuMind transforms how you document your projects by enabling documentation commands directly in your IDE through AI assistants. No external tools, no separate applications - just natural documentation commands that work where you code.
@@ -19,14 +24,7 @@ DocuMind transforms how you document your projects by enabling documentation com
 ### Installation
 
 ```bash
-# Option 1: NPX (recommended)
-npx @documind/core init
-
-# Option 2: Global install
-npm install -g @documind/core
-documind init
-
-# Option 3: Clone and run
+# Clone and run
 git clone https://github.com/denniswebb/documind.git
 cd your-project
 node /path/to/documind/.documind/scripts/install.js
@@ -154,12 +152,7 @@ git clone repo && cd repo
 4. **Templates provide structure** for consistent, professional output
 5. **Navigation updates** automatically to maintain coherent structure
 
-## 📦 Distribution Options
-
-### NPX (Recommended)
-```bash
-npx @documind/core init
-```
+## 📦 Installation Options
 
 ### GitHub Template
 ```bash
@@ -192,15 +185,21 @@ You can customize the system by editing:
 
 ### Programmatic Usage
 ```javascript
-const DocuMind = require('@documind/core');
+// Example usage for local development
+const fs = require('fs');
+const path = require('path');
 
-const dm = new DocuMind({ rootDir: './my-project' });
+function runScript(scriptName) {
+  const scriptPath = `.documind/scripts/${scriptName}.js`;
+  if (fs.existsSync(scriptPath)) {
+    require(path.resolve(scriptPath));
+  } else {
+    console.log(`Script ${scriptName} not found`);
+  }
+}
 
-await dm.install();
-await dm.update();
-
-const isInstalled = await dm.isInstalled();
-const version = await dm.getVersion();
+runScript('install');
+runScript('update');
 ```
 
 ### Custom Commands
@@ -218,14 +217,100 @@ Your custom documentation command
 Keep DocuMind current:
 
 ```bash
-# Auto-update
-documind update
-
-# Check version
-documind version
-
 # Update from local development
-documind update --local /path/to/documind/source
+node .documind/scripts/update.js
+```
+
+## 🧪 Testing
+
+DocuMind includes comprehensive testing with Node.js built-in test runner and GitHub Actions CI/CD.
+
+### Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run specific test suites
+npm run test:unit          # Unit tests only
+npm run test:integration   # Integration tests only
+npm run test:performance   # Performance tests only
+
+# Run tests with coverage
+npm run test:coverage
+
+# Validate coverage thresholds
+npm run coverage:validate
+
+# Generate coverage reports
+npm run coverage:report
+```
+
+### Test Structure
+
+```
+tests/
+├── unit/                  # Unit tests for core functionality
+│   ├── install.test.js           # Installation script tests
+│   ├── generate-commands.test.js # Command generation tests
+│   ├── update.test.js             # Update script tests
+│   ├── template-processing.test.js # Template system tests
+│   └── gitignore-operations.test.js # Git integration tests
+│
+├── integration/          # Integration and end-to-end tests
+│   ├── fresh-install.test.js      # Fresh installation workflow
+│   ├── ai-detection.test.js       # AI tool detection tests
+│   ├── update-workflow.test.js    # Update process tests
+│   ├── error-handling.test.js     # Error scenario tests
+│   ├── full-deployment.test.js    # Complete deployment validation
+│   └── platform-compatibility.test.js # Cross-platform tests
+│
+├── performance/          # Performance and speed tests
+│   └── install-speed.test.js      # Installation speed benchmarks
+│
+└── utils/                # Test utilities and helpers
+    ├── test-environment.js        # Test environment setup
+    ├── mock-repo.js               # Mock repository generator
+    └── assertions.js              # Custom test assertions
+```
+
+### Coverage Requirements
+
+- **Lines**: ≥90%
+- **Functions**: ≥90% 
+- **Branches**: ≥80%
+- **Statements**: ≥90%
+
+### CI/CD Pipeline
+
+Our GitHub Actions workflow tests across:
+
+- **Node.js versions**: 16.x, 18.x, 20.x, 21.x
+- **Operating system**: Ubuntu (latest)
+- **Test categories**: Unit, integration, performance
+- **Quality checks**: Linting, security audit, coverage validation
+
+### Performance Benchmarks
+
+- **Small projects**: <5 seconds installation
+- **Medium projects**: <15 seconds installation  
+- **Large projects**: <30 seconds installation
+- **Updates**: <5 seconds
+
+### Local Development Testing
+
+```bash
+# Run tests in watch mode
+npm run test:watch
+
+# Test against multiple Node.js versions
+npm run test:matrix
+
+# Performance testing
+npm run test:performance
+
+# Coverage validation
+npm run coverage:validate
 ```
 
 ## 🎯 Design Principles
@@ -252,7 +337,6 @@ MIT License - see [LICENSE](./LICENSE) for details.
 ## 🔗 Links
 
 - **GitHub**: [denniswebb/documind](https://github.com/denniswebb/documind)
-- **NPM**: [@documind/core](https://npmjs.com/package/@documind/core)
 - **Documentation**: [Full Docs](./docs/README.md)
 - **Issues**: [Bug Reports](https://github.com/denniswebb/documind/issues)
 
