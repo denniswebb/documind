@@ -1,4 +1,4 @@
-# Chapter 4: Development
+# Chapter 3: Development
 
 This chapter provides guides and references for developers working on DocuMind.
 

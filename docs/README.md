@@ -8,8 +8,6 @@ This documentation is generated and maintained by DocuMind itself.
 
 - **[Getting Oriented](./01-getting-oriented/README.md)**: Introduction, tech stack, and architecture.
 - **[Core Concepts](./02-core-concepts/README.md)**: Key ideas and abstractions.
-- **[Integrations](./03-integrations/README.md)**: How we use external services.
-- **[Development](./04-development/README.md)**: Setup, contributing, and development guides.
-- **[Appendices](./99-appendices/README.md)**: Additional resources.
+- **[Development](./03-development/README.md)**: Setup, contributing, and development guides.
 
 *Last Updated: 2025-09-12*
