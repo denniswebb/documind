@@ -6,19 +6,16 @@
   - [Tech Stack](01-getting-oriented/02-tech-stack.md)
   - [Architecture](01-getting-oriented/03-architecture.md)
   - [File System](01-getting-oriented/04-file-system.md)
+  - [Installation](01-getting-oriented/05-installation.md)
 
 - **⚙️ Chapter 2: Core Concepts**
   - [Overview](02-core-concepts/README.md)
+  - [CLI System](02-core-concepts/01-cli-system.md)
 
-- **🔌 Chapter 3: Integrations**
-  - [Overview](03-integrations/README.md)
-
-- **🛠️ Chapter 4: Development**
-  - [Overview](04-development/README.md)
-  - [Setup](04-development/01-setup.md)
-
-- **📚 Appendices**
-  - [Overview](99-appendices/README.md)
+- **🛠️ Chapter 3: Development**
+  - [Overview](03-development/README.md)
+  - [Setup](03-development/01-setup.md)
+  - [CLI Deep Dive](03-development/02-cli-deep-dive.md)
 
 ---
 
@@ -31,6 +28,6 @@
 
 ### 🎯 Quick Actions
 
-- [📝 Request Documentation Update](https://github.com/denniswebb/documind/issues/new?template=documentation-request.md)
-- [🐛 Report Documentation Issue](https://github.com/denniswebb/documind/issues/new?template=bug_report.md)
-- [💡 Suggest Improvement](https://github.com/denniswebb/documind/issues/new?template=feature_request.md)
+- [📝 Request Documentation Update](https://github.com/denniswebb/documind/issues/new?template=documentation-request.md&labels=documentation)
+- [🐛 Report Documentation Issue](https://github.com/denniswebb/documind/issues/new?template=bug_report.md&labels=bug)
+- [💡 Suggest Improvement](https://github.com/denniswebb/documind/issues/new?template=feature_request.md&labels=enhancement)

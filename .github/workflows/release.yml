@@ -1,0 +1,159 @@
+name: Release Automation
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - 'README.md'
+      - 'CHANGELOG.md'
+      - 'docs/**'
+      - '.github/**.md'
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: 'Version bump type'
+        required: false
+        default: 'patch'
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Skip if release commit
+        run: |
+          if git log -1 --pretty=format:"%s" | grep -E "^(chore\(release\)|Release v)"; then
+            echo "Skipping release - this appears to be a release commit"
+            exit 0
+          fi
+
+      - name: Create release with semver action
+        id: semver
+        uses: ietf-tools/semver-action@v1
+        with:
+          token: ${{ github.token }}
+          branch: main
+          patchList: fix,bugfix,perf,refactor,test,tests,doc,docs,chore
+          minorList: feat,feature
+          majorList: ${{ github.event.inputs.version_bump == 'major' && 'major,breaking,any' || 'major,breaking' }}
+          patchAll: ${{ github.event.inputs.version_bump == 'patch' }}
+          noVersionBumpBehavior: patch
+          prefix: ""
+
+      - name: Create release package
+        if: steps.semver.outputs.next != ''
+        run: |
+          NEW_VERSION="${{ steps.semver.outputs.next }}"
+          # Remove v prefix if present
+          NEW_VERSION=${NEW_VERSION#v}
+
+          # Create release directory
+          mkdir -p release/documind-v${NEW_VERSION}
+
+          # Copy files needed for installer to work
+          cp -r src/ release/documind-v${NEW_VERSION}/src/
+          cp install.js release/documind-v${NEW_VERSION}/
+          cp package.json release/documind-v${NEW_VERSION}/
+          cp README.md release/documind-v${NEW_VERSION}/
+
+          # Create installation instructions
+          cat > release/documind-v${NEW_VERSION}/INSTALL.md << 'EOF'
+          # DocuMind Installation
+
+          ## Automated Installation (Recommended)
+
+          ```bash
+          # Extract and install
+          unzip documind-v${NEW_VERSION}.zip
+          cd documind-v${NEW_VERSION}
+          node install.js init [target-directory]
+          ```
+
+          ## Manual Installation
+
+          ```bash
+          # Extract to your project root
+          unzip documind-v${NEW_VERSION}.zip -d your-project/
+          cd your-project/documind-v${NEW_VERSION}
+          node install.js init ../
+          ```
+
+          ## What's Included
+
+          - Complete DocuMind source system
+          - Automated installer
+          - Support for Claude, Copilot, Cursor, and Gemini
+          - Documentation templates
+
+          ## Getting Started
+
+          After installation, try:
+          - `/document bootstrap` - Generate complete documentation
+          - `/document [your question]` - Ask anything about your code
+          EOF
+
+          # Create ZIP archive
+          cd release
+          zip -r documind-v${NEW_VERSION}.zip documind-v${NEW_VERSION}/
+
+          echo "RELEASE_FILE=release/documind-v${NEW_VERSION}.zip" >> $GITHUB_ENV
+          echo "VERSION=${NEW_VERSION}" >> $GITHUB_ENV
+
+      - name: Create GitHub Release
+        if: steps.semver.outputs.next != ''
+        run: |
+          NEW_VERSION="${{ env.VERSION }}"
+
+          # Generate changelog from recent commits
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -n "$LATEST_TAG" ]; then
+            CHANGELOG=$(git log ${LATEST_TAG}..HEAD --oneline --pretty=format:"- %s")
+          else
+            CHANGELOG=$(git log --oneline --pretty=format:"- %s" | head -20)
+          fi
+
+          # Create release with ZIP attachment
+          gh release create "$NEW_VERSION" \
+            "${{ env.RELEASE_FILE }}" \
+            --title "DocuMind v$NEW_VERSION" \
+            --notes "## DocuMind v$NEW_VERSION
+
+          ### Installation
+
+          Download \`documind-v$NEW_VERSION.zip\` and run:
+          \`\`\`bash
+          unzip documind-v$NEW_VERSION.zip
+          cd documind-v$NEW_VERSION
+          node install.js init [your-project-directory]
+          \`\`\`
+
+          ### Changes
+
+          $CHANGELOG
+
+          ### What's New
+          - Complete DocuMind documentation system
+          - AI tool integrations (Claude, Copilot, Cursor, Gemini)
+          - Automated installation and updates
+          - Natural language documentation commands" \
+            --latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
