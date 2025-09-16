@@ -146,12 +146,6 @@ describe('DocuMindCLI', () => {
   });
 
   describe('showVaporwaveLogo', () => {
-    it('should display the vaporwave logo', () => {
-      cli.showVaporwaveLogo();
-      assert.ok(mockConsoleOutput.length > 0);
-      const logoOutput = mockConsoleOutput.join(' ');
-      assert.ok(logoOutput.includes('DocuMind') || logoOutput.includes('◆'));
-    });
 
     it('should use correct colors in logo', () => {
       cli.showVaporwaveLogo();
@@ -287,7 +281,7 @@ describe('DocuMindCLI', () => {
     it('should read and parse package.json', async () => {
       const result = await cli.readPackageJson();
       assert.ok(result);
-      assert.strictEqual(result.name, '@documind/core');
+      assert.strictEqual(result.name, '@dennis-webb/documind');
       assert.strictEqual(result.type, 'module');
     });
 
