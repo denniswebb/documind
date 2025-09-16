@@ -12,6 +12,9 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     environment: release
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Checkout code
@@ -23,13 +26,86 @@ jobs:
           node-version: '20.x'
           registry-url: 'https://registry.npmjs.org/'
 
+      - name: Extract package info
+        id: pkg
+        run: |
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+          echo "name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Package: $PACKAGE_NAME v$VERSION"
+
       - name: Install dependencies
         run: npm ci
 
       - name: Run tests
         run: npm test
 
-      - name: Publish to npm
-        run: npm publish
+      - name: Verify package contents (dry-run)
+        run: |
+          echo "🔍 Verifying package contents before publishing..."
+          npm publish --dry-run
+          echo "✅ Dry-run completed successfully. Package is ready for publishing."
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish to npm
+        id: publish
+        run: npm publish --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Notify publish success
+        if: success()
+        run: |
+          echo "🎉 Successfully published ${{ steps.pkg.outputs.name }} v${{ steps.pkg.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "📦 Package: https://www.npmjs.com/package/${{ steps.pkg.outputs.name }}" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 Registry: https://registry.npmjs.org/${{ steps.pkg.outputs.name }}" >> $GITHUB_STEP_SUMMARY
+
+          if [[ -n "${{ secrets.PUSHOVER_TOKEN }}" && -n "${{ secrets.PUSHOVER_USER }}" ]]; then
+            curl -s \
+              --form-string "token=${{ secrets.PUSHOVER_TOKEN }}" \
+              --form-string "user=${{ secrets.PUSHOVER_USER }}" \
+              --form-string "title=📦 npm Package Published" \
+              --form-string "message=${{ steps.pkg.outputs.name }} v${{ steps.pkg.outputs.version }} published successfully!" \
+              --form-string "url=https://www.npmjs.com/package/${{ steps.pkg.outputs.name }}" \
+              --form-string "priority=0" \
+              https://api.pushover.net/1/messages.json
+          fi
+
+      - name: Notify publish failure
+        if: ${{ failure() && steps.publish.outcome == 'failure' }}
+        run: |
+          echo "❌ Failed to publish ${{ steps.pkg.outputs.name }} v${{ steps.pkg.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
+          echo "📋 Check the logs above for error details" >> $GITHUB_STEP_SUMMARY
+
+          if [[ -n "${{ secrets.PUSHOVER_TOKEN }}" && -n "${{ secrets.PUSHOVER_USER }}" ]]; then
+            curl -s \
+              --form-string "token=${{ secrets.PUSHOVER_TOKEN }}" \
+              --form-string "user=${{ secrets.PUSHOVER_USER }}" \
+              --form-string "title=❌ npm Publish Failed" \
+              --form-string "message=Failed to publish ${{ steps.pkg.outputs.name }} v${{ steps.pkg.outputs.version }}. Check workflow logs." \
+              --form-string "url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+              --form-string "priority=1" \
+              https://api.pushover.net/1/messages.json
+          fi
+
+      - name: Workflow summary
+        if: always()
+        run: |
+          echo "## 📊 Publish Workflow Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Package:** ${{ steps.pkg.outputs.name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ steps.pkg.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.event_name }} on ${{ github.ref }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Workflow run:** [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ job.status }}" == "success" ]]; then
+            echo "✅ **Status:** Published successfully" >> $GITHUB_STEP_SUMMARY
+            echo "🔗 **npm package:** https://www.npmjs.com/package/${{ steps.pkg.outputs.name }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Status:** Publish failed" >> $GITHUB_STEP_SUMMARY
+            echo "📋 **Action required:** Review logs and resolve issues" >> $GITHUB_STEP_SUMMARY
+          fi
