@@ -1,5 +1,5 @@
 {
-  "name": "@documind/core",
+  "name": "@dennis-webb/documind",
   "version": "1.0.0",
   "type": "module",
   "description": "IDE-native documentation system with AI-powered slash commands",
@@ -60,7 +60,6 @@
     "LICENSE"
   ],
   "publishConfig": {
-    "access": "public",
-    "registry": "https://npm.pkg.github.com"
+    "access": "public"
   }
 }
