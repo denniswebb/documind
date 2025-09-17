@@ -20,7 +20,7 @@ class DocuMindCLI {
       electricBlue: '\x1b[94m',    // Bright blue
       hotPink: '\x1b[91m',         // Bright red
       synthWave: '\x1b[93m',       // Bright yellow
-      
+
       // Standard colors for compatibility
       brightMagenta: '\x1b[95m',
       brightCyan: '\x1b[96m',
