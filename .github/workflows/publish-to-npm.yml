@@ -31,9 +31,14 @@ jobs:
         run: |
           PACKAGE_NAME=$(node -p "require('./package.json').name")
           VERSION=$(node -p "require('./package.json').version")
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+
           echo "name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+
           echo "📦 Package: $PACKAGE_NAME v$VERSION"
+          echo "🏷️ Tag: v$TAG_VERSION"
+          echo "✅ Publishing version from package.json"
 
       - name: Install dependencies
         run: npm ci
