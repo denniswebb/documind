@@ -72,9 +72,9 @@ jobs:
           prefix: "v"
 
       - name: Update package.json and create tag
-        if: steps.check_commit.outputs.skip == 'false' && steps.semver.outputs.next != ''
+        if: steps.check_commit.outputs.skip == 'false' && steps.semver.outputs.nextStrict != ''
         run: |
-          TAG_VERSION="${{ steps.semver.outputs.next }}"
+          TAG_VERSION="${{ steps.semver.outputs.nextStrict }}"
           # Remove v prefix to get clean version for package.json
           CLEAN_VERSION=${TAG_VERSION#v}
 
@@ -115,9 +115,9 @@ jobs:
           echo "✅ Version $CLEAN_VERSION released and tagged as $TAG_VERSION"
 
       - name: Create release package
-        if: steps.check_commit.outputs.skip == 'false' && steps.semver.outputs.next != ''
+        if: steps.check_commit.outputs.skip == 'false' && steps.semver.outputs.nextStrict != ''
         run: |
-          TAG_VERSION="${{ steps.semver.outputs.next }}"
+          TAG_VERSION="${{ steps.semver.outputs.nextStrict }}"
           # Remove v prefix for version number
           NEW_VERSION=${TAG_VERSION#v}
 
@@ -174,7 +174,7 @@ jobs:
           echo "VERSION=${TAG_VERSION}" >> $GITHUB_ENV
 
       - name: Create GitHub Release
-        if: steps.check_commit.outputs.skip == 'false' && steps.semver.outputs.next != ''
+        if: steps.check_commit.outputs.skip == 'false' && steps.semver.outputs.nextStrict != ''
         run: |
           NEW_VERSION="${{ env.VERSION }}"
 
