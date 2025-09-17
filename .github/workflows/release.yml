@@ -176,7 +176,9 @@ jobs:
       - name: Create GitHub Release
         if: steps.check_commit.outputs.skip == 'false' && steps.semver.outputs.nextStrict != ''
         run: |
-          NEW_VERSION="${{ env.VERSION }}"
+          TAG_VERSION="${{ env.VERSION }}"
+          # Remove v prefix for display version
+          DISPLAY_VERSION=${TAG_VERSION#v}
 
           # Generate changelog from recent commits
           LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
@@ -187,17 +189,17 @@ jobs:
           fi
 
           # Create release with ZIP attachment
-          gh release create "$NEW_VERSION" \
+          gh release create "$TAG_VERSION" \
             "${{ env.RELEASE_FILE }}" \
-            --title "DocuMind v$NEW_VERSION" \
-            --notes "## DocuMind v$NEW_VERSION
+            --title "DocuMind v$DISPLAY_VERSION" \
+            --notes "## DocuMind v$DISPLAY_VERSION
 
           ### Installation
 
-          Download \`documind-v$NEW_VERSION.zip\` and run:
+          Download \`documind-v$DISPLAY_VERSION.zip\` and run:
           \`\`\`bash
-          unzip documind-v$NEW_VERSION.zip
-          cd documind-v$NEW_VERSION
+          unzip documind-v$DISPLAY_VERSION.zip
+          cd documind-v$DISPLAY_VERSION
           node install.js init [your-project-directory]
           \`\`\`
 
