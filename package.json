@@ -1,6 +1,6 @@
 {
   "name": "@dennis-webb/documind",
-  "version": "0.2.0",
+  "version": "0.1.2",
   "type": "module",
   "description": "IDE-native documentation system with AI-powered slash commands",
   "main": "install.js",
@@ -17,7 +17,7 @@
     "test:watch": "node --test --watch tests/unit/*.test.js",
     "test:matrix": "npm run test:node16 && npm run test:node18 && npm run test:node20 && npm run test:node21",
     "test:node16": "NODE_VERSION=16 npm run test:all",
-    "test:node18": "NODE_VERSION=18 npm run test:all", 
+    "test:node18": "NODE_VERSION=18 npm run test:all",
     "test:node20": "NODE_VERSION=20 npm run test:all",
     "test:node21": "NODE_VERSION=21 npm run test:all",
     "test:performance": "node --test tests/performance/*.test.js",
