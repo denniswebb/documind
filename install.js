@@ -12,10 +12,10 @@ class DocuMindCLI {
     this.colors = {
       reset: '\x1b[0m',
       bright: '\x1b[1m',
-      
+
       // Vaporwave palette
       neonPink: '\x1b[95m',        // Bright magenta
-      neonCyan: '\x1b[96m',        // Bright cyan  
+      neonCyan: '\x1b[96m',        // Bright cyan
       neonPurple: '\x1b[35m',      // Magenta
       electricBlue: '\x1b[94m',    // Bright blue
       hotPink: '\x1b[91m',         // Bright red
