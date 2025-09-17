@@ -1028,8 +1028,8 @@ You have access to documentation commands through natural language or slash nota
   }
 }
 
-// Only run if this file is executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Run CLI when executed as a script (works with npx, symlinks, and direct execution)
+if (process.argv[1] && import.meta.url.startsWith('file:')) {
   const cli = new DocuMindCLI();
   cli.run();
 }
