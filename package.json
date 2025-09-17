@@ -53,7 +53,7 @@
     "node": ">=18.0.0"
   },
   "files": [
-    ".documind/",
+    "src/",
     "install.js",
     "index.js",
     "README.md",
