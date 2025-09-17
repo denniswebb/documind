@@ -42,7 +42,7 @@ jobs:
         id: check_commit
         run: |
           COMMIT_MSG=$(git log -1 --pretty=format:"%s")
-          if echo "$COMMIT_MSG" | grep -E "^(\[skip ci\]|chore\(release\)|Release v)"; then
+          if echo "$COMMIT_MSG" | grep -E "(chore\(release\)|Release v|\[automated\])"; then
             echo "skip=true" >> $GITHUB_OUTPUT
             echo "Skipping release - this appears to be a release commit: $COMMIT_MSG"
           else
@@ -89,7 +89,7 @@ jobs:
           # Update package.json version and create commit
           npm version $CLEAN_VERSION --no-git-tag-version
           git add package.json
-          git commit -m "[skip ci] chore(release): v$CLEAN_VERSION"
+          git commit -m "chore(release): v$CLEAN_VERSION [automated]"
 
           # Create and push tag
           git tag "$TAG_VERSION"
