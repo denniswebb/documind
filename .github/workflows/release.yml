@@ -69,18 +69,22 @@ jobs:
           majorList: ${{ github.event.inputs.version_bump == 'major' && 'major,breaking,any' || 'major,breaking' }}
           patchAll: ${{ github.event.inputs.version_bump == 'patch' }}
           noVersionBumpBehavior: patch
-          prefix: ""
+          prefix: "v"
 
       - name: Update package.json and create tag
         if: steps.check_commit.outputs.skip == 'false' && steps.semver.outputs.next != ''
         run: |
-          RAW_VERSION="${{ steps.semver.outputs.next }}"
-          # Remove v prefix if present to get clean version for package.json
-          CLEAN_VERSION=${RAW_VERSION#v}
-          # Ensure tag has v prefix
-          TAG_VERSION="v${CLEAN_VERSION}"
+          TAG_VERSION="${{ steps.semver.outputs.next }}"
+          # Remove v prefix to get clean version for package.json
+          CLEAN_VERSION=${TAG_VERSION#v}
 
           echo "🚀 Releasing version: $CLEAN_VERSION (tag: $TAG_VERSION)"
+
+          # Check if tag already exists
+          if git rev-parse "refs/tags/$TAG_VERSION" >/dev/null 2>&1; then
+            echo "⚠️  Tag $TAG_VERSION already exists, skipping release"
+            exit 0
+          fi
 
           # Check if version already matches
           CURRENT_VERSION=$(node -p "require('./package.json').version")
@@ -113,9 +117,9 @@ jobs:
       - name: Create release package
         if: steps.check_commit.outputs.skip == 'false' && steps.semver.outputs.next != ''
         run: |
-          RAW_VERSION="${{ steps.semver.outputs.next }}"
-          # Remove v prefix if present
-          NEW_VERSION=${RAW_VERSION#v}
+          TAG_VERSION="${{ steps.semver.outputs.next }}"
+          # Remove v prefix for version number
+          NEW_VERSION=${TAG_VERSION#v}
 
           # Create release directory
           mkdir -p release/documind-v${NEW_VERSION}
@@ -167,7 +171,7 @@ jobs:
           zip -r documind-v${NEW_VERSION}.zip documind-v${NEW_VERSION}/
 
           echo "RELEASE_FILE=release/documind-v${NEW_VERSION}.zip" >> $GITHUB_ENV
-          echo "VERSION=v${NEW_VERSION}" >> $GITHUB_ENV
+          echo "VERSION=${TAG_VERSION}" >> $GITHUB_ENV
 
       - name: Create GitHub Release
         if: steps.check_commit.outputs.skip == 'false' && steps.semver.outputs.next != ''
