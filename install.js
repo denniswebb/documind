@@ -8,7 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 
 class DocuMindCLI {
   constructor() {
-    // 80s Vaporwave ANSI colors (preserved from original CLI)
+    // 80s Vaporwave ANSI colors for retro aesthetics
     this.colors = {
       reset: '\x1b[0m',
       bright: '\x1b[1m',

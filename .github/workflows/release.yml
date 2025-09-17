@@ -27,30 +27,27 @@ jobs:
   release:
     name: Create Release
     runs-on: ubuntu-latest
+    environment:
+      name: release
+      url: ${{ steps.deployment.outputs.page_url }}
     permissions:
       contents: write
       actions: read
+      pages: write
+      id-token: write
 
     steps:
-      - name: Generate App Token
-        id: app-token
-        uses: actions/create-github-app-token@v1
-        with:
-          app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
-          installation-id: ${{ secrets.APP_INSTALLATION_ID }}
-
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ steps.app-token.outputs.token }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check if release commit
         id: check_commit
         run: |
           COMMIT_MSG=$(git log -1 --pretty=format:"%s")
-          if echo "$COMMIT_MSG" | grep -E "(chore\(release\)|Release v|\[automated\])"; then
+          if echo "$COMMIT_MSG" | grep -E "(chore\(release\)|Release v|\[skip ci\])"; then
             echo "skip=true" >> $GITHUB_OUTPUT
             echo "Skipping release - this appears to be a release commit: $COMMIT_MSG"
           else
@@ -70,7 +67,7 @@ jobs:
         id: semver
         uses: ietf-tools/semver-action@v1
         with:
-          token: ${{ steps.app-token.outputs.token }}
+          token: ${{ github.token }}
           branch: main
           patchList: fix,bugfix,perf,refactor,test,tests,doc,docs,chore
           minorList: feat,feature
@@ -107,17 +104,16 @@ jobs:
             npm version $CLEAN_VERSION --no-git-tag-version
           fi
 
-          # Configure git with app token
+          # Configure git
           git config --local user.email "action@github.com"
-          git config --local user.name "DocuMind Release Bot"
-          git remote set-url origin https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/${{ github.repository }}.git
+          git config --local user.name "GitHub Action"
 
           # Create commit if there are changes
           if git diff --quiet; then
             echo "📝 No package.json changes to commit"
           else
             git add package.json
-            git commit -m "chore(release): v$CLEAN_VERSION [automated]"
+            git commit -m "[skip ci] chore(release): v$CLEAN_VERSION"
           fi
 
           # Create and push tag
@@ -227,4 +223,76 @@ jobs:
           - Natural language documentation commands" \
             --latest
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js for npm publish
+        if: steps.check_commit.outputs.skip == 'false' && steps.semver.outputs.nextStrict != '' && steps.release_step.outputs.skipped != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org/'
+
+      - name: Extract package info
+        if: steps.check_commit.outputs.skip == 'false' && steps.semver.outputs.nextStrict != '' && steps.release_step.outputs.skipped != 'true'
+        id: pkg
+        run: |
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+
+          echo "name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          echo "📦 Package: $PACKAGE_NAME v$VERSION"
+          echo "✅ Publishing version from package.json"
+
+      - name: Install dependencies
+        if: steps.check_commit.outputs.skip == 'false' && steps.semver.outputs.nextStrict != '' && steps.release_step.outputs.skipped != 'true'
+        run: npm ci
+
+      - name: Run tests
+        if: steps.check_commit.outputs.skip == 'false' && steps.semver.outputs.nextStrict != '' && steps.release_step.outputs.skipped != 'true'
+        run: npm test
+
+      - name: Verify package contents (dry-run)
+        if: steps.check_commit.outputs.skip == 'false' && steps.semver.outputs.nextStrict != '' && steps.release_step.outputs.skipped != 'true'
+        run: |
+          echo "🔍 Verifying package contents before publishing..."
+          npm publish --dry-run
+          echo "✅ Dry-run completed successfully. Package is ready for publishing."
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish to npm
+        if: steps.check_commit.outputs.skip == 'false' && steps.semver.outputs.nextStrict != '' && steps.release_step.outputs.skipped != 'true'
+        id: publish
+        run: npm publish --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Notify npm publish success
+        if: success() && steps.publish.outcome == 'success'
+        run: |
+          echo "🎉 Successfully published ${{ steps.pkg.outputs.name }} v${{ steps.pkg.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "📦 Package: https://www.npmjs.com/package/${{ steps.pkg.outputs.name }}" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 Registry: https://registry.npmjs.org/${{ steps.pkg.outputs.name }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Setup Pages
+        if: steps.check_commit.outputs.skip == 'false' && steps.semver.outputs.nextStrict != '' && steps.release_step.outputs.skipped != 'true'
+        uses: actions/configure-pages@v4
+
+      - name: Upload docs artifact
+        if: steps.check_commit.outputs.skip == 'false' && steps.semver.outputs.nextStrict != '' && steps.release_step.outputs.skipped != 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './docs'
+
+      - name: Deploy to GitHub Pages
+        if: steps.check_commit.outputs.skip == 'false' && steps.semver.outputs.nextStrict != '' && steps.release_step.outputs.skipped != 'true'
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Notify docs publish success
+        if: success() && steps.deployment.outcome == 'success'
+        run: |
+          echo "📚 Successfully published documentation to GitHub Pages" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 Documentation: ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
