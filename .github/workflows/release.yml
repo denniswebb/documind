@@ -72,6 +72,7 @@ jobs:
           prefix: "v"
 
       - name: Update package.json and create tag
+        id: release_step
         if: steps.check_commit.outputs.skip == 'false' && steps.semver.outputs.nextStrict != ''
         run: |
           TAG_VERSION="${{ steps.semver.outputs.nextStrict }}"
@@ -83,8 +84,11 @@ jobs:
           # Check if tag already exists
           if git rev-parse "refs/tags/$TAG_VERSION" >/dev/null 2>&1; then
             echo "⚠️  Tag $TAG_VERSION already exists, skipping release"
+            echo "skipped=true" >> $GITHUB_OUTPUT
             exit 0
           fi
+
+          echo "skipped=false" >> $GITHUB_OUTPUT
 
           # Check if version already matches
           CURRENT_VERSION=$(node -p "require('./package.json').version")
@@ -115,7 +119,7 @@ jobs:
           echo "✅ Version $CLEAN_VERSION released and tagged as $TAG_VERSION"
 
       - name: Create release package
-        if: steps.check_commit.outputs.skip == 'false' && steps.semver.outputs.nextStrict != ''
+        if: steps.check_commit.outputs.skip == 'false' && steps.semver.outputs.nextStrict != '' && steps.release_step.outputs.skipped != 'true'
         run: |
           TAG_VERSION="${{ steps.semver.outputs.nextStrict }}"
           # Remove v prefix for version number
@@ -174,7 +178,7 @@ jobs:
           echo "VERSION=${TAG_VERSION}" >> $GITHUB_ENV
 
       - name: Create GitHub Release
-        if: steps.check_commit.outputs.skip == 'false' && steps.semver.outputs.nextStrict != ''
+        if: steps.check_commit.outputs.skip == 'false' && steps.semver.outputs.nextStrict != '' && steps.release_step.outputs.skipped != 'true'
         run: |
           TAG_VERSION="${{ env.VERSION }}"
           # Remove v prefix for display version
