@@ -70,6 +70,7 @@ jobs:
           patchAll: ${{ github.event.inputs.version_bump == 'patch' }}
           noVersionBumpBehavior: patch
           prefix: ""
+          skipTag: true
 
       - name: Update package.json and create tag
         if: steps.check_commit.outputs.skip == 'false' && steps.semver.outputs.next != ''
