@@ -82,14 +82,26 @@ jobs:
 
           echo "🚀 Releasing version: $CLEAN_VERSION (tag: $TAG_VERSION)"
 
+          # Check if version already matches
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          if [ "$CURRENT_VERSION" = "$CLEAN_VERSION" ]; then
+            echo "✅ Version already at $CLEAN_VERSION, skipping package.json update"
+          else
+            echo "📦 Updating package.json from $CURRENT_VERSION to $CLEAN_VERSION"
+            npm version $CLEAN_VERSION --no-git-tag-version
+          fi
+
           # Configure git
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
 
-          # Update package.json version and create commit
-          npm version $CLEAN_VERSION --no-git-tag-version
-          git add package.json
-          git commit -m "chore(release): v$CLEAN_VERSION [automated]"
+          # Create commit if there are changes
+          if git diff --quiet; then
+            echo "📝 No package.json changes to commit"
+          else
+            git add package.json
+            git commit -m "chore(release): v$CLEAN_VERSION [automated]"
+          fi
 
           # Create and push tag
           git tag "$TAG_VERSION"
