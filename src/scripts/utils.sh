@@ -88,7 +88,7 @@ init_documind_paths() {
         # Installed mode - utils.sh is in .documind/scripts
         DOCUMIND_ROOT_DIR="$(dirname "$(dirname "$utils_dir")")"
         DOCUMIND_SCRIPTS_DIR="$utils_dir"
-        DOCUMIND_NODE_SCRIPTS_DIR="$DOCUMIND_ROOT_DIR/src/scripts"
+        DOCUMIND_NODE_SCRIPTS_DIR="$utils_dir"
         return 0
     else
         # Fallback: try to detect based on current directory

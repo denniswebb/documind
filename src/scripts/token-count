@@ -231,9 +231,14 @@ process_file() {
     # Extract token count from result
     local tokens
     if [[ "$json_output" == "true" ]]; then
-        tokens=$(echo "$result" | jq -r '.tokens')
+        tokens=$(echo "$result" | jq -r '.tokens // 0' 2>/dev/null || echo "0")
     else
         tokens="$result"
+    fi
+
+    # Ensure tokens is a valid number
+    if ! [[ "$tokens" =~ ^[0-9]+$ ]]; then
+        tokens="0"
     fi
 
     case "$format" in
