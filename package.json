@@ -71,7 +71,7 @@
   },
   "dependencies": {
     "yaml": "^2.8.1",
-    "@scil/mdsplit-js": "^1.1.0"
+    "@scil/mdsplit-js": "^100.4.1"
   },
   "optionalDependencies": {
     "tiktoken": "^1.0.15"
