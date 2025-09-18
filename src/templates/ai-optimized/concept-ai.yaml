@@ -1,0 +1,83 @@
+# AI-Optimized Concept Documentation Manifest
+# This manifest defines how AI agents should generate and enhance concept documentation
+
+manifest_version: "1.0"
+manifest_type: "concept"
+display_name: "Concept Documentation"
+description: "AI-driven generation and enhancement of concept documentation with token optimization"
+
+# Template reference
+template_path: "../concept.md"
+output_path_pattern: "docs/02-core-concepts/{concept_name}.md"
+
+# Token management
+default_token_budget: 3000
+token_count_method_preference: ["tiktoken", "heuristic", "wc"]
+max_token_limit: 5000
+token_optimization_enabled: true
+
+# Specialist configuration
+specialist_roles:
+  - "developer"
+  - "architect" 
+  - "user"
+
+# Lazy activation rules
+lazy_activation_rules:
+  - trigger: "code_analysis_required"
+    condition: "contains_code_examples"
+    specialist: "developer"
+  - trigger: "system_design_context"
+    condition: "architectural_implications"
+    specialist: "architect"
+  - trigger: "user_facing_features"
+    condition: "user_interaction_patterns"
+    specialist: "user"
+
+# AI-specific fields for structured output
+ai_output_format:
+  sections:
+    - name: "overview"
+      max_tokens: 300
+      required: true
+      format: "numbered_list"
+    - name: "key_components"
+      max_tokens: 500
+      required: true
+      format: "bullet_points"
+    - name: "how_it_works"
+      max_tokens: 600
+      required: true
+      format: "numbered_steps"
+    - name: "code_examples"
+      max_tokens: 800
+      required: false
+      format: "code_blocks"
+    - name: "configuration"
+      max_tokens: 400
+      required: false
+      format: "table"
+    - name: "troubleshooting"
+      max_tokens: 400
+      required: false
+      format: "qa_pairs"
+
+# Validation
+validation:
+  schema_ref: "ai-manifest-schema.yaml"
+  required_fields: ["overview", "key_components", "how_it_works"]
+  
+# Synonyms support
+synonyms_supported: true
+natural_language_triggers:
+  - "document this concept"
+  - "explain how {concept} works"
+  - "create docs for {concept}"
+  - "what is {concept}"
+
+# Storage configuration
+storage_in_manifest_allowed: true
+embedded_metadata:
+  last_token_count: null
+  last_updated: null
+  validation_status: "pending"

@@ -1,0 +1,204 @@
+# Token Budget Recommendations for DocuMind AI Documentation
+# Defines recommended token allocations per manifest type and specialist
+
+budget_version: "1.0"
+last_updated: "2024-01-01"
+
+# Base budgets by manifest type
+base_budgets:
+  concept:
+    baseline_budget: 3000
+    description: "Core system concepts and abstractions"
+    typical_sections: 6
+    average_section_tokens: 500
+    
+  integration:
+    baseline_budget: 4500
+    description: "External service integrations"
+    typical_sections: 8
+    average_section_tokens: 560
+    
+  architecture:
+    baseline_budget: 6000
+    description: "System architecture and design"
+    typical_sections: 10
+    average_section_tokens: 600
+    
+  custom:
+    baseline_budget: 2000
+    description: "Custom documentation types"
+    typical_sections: 4
+    average_section_tokens: 500
+
+# Per-specialist additional budget allocations
+specialist_budgets:
+  developer:
+    additional_budget: 1000
+    reasoning: "Code examples and implementation details require more tokens"
+    typical_additions:
+      - "code_examples": 400
+      - "implementation_details": 300
+      - "api_documentation": 300
+    
+  architect:
+    additional_budget: 1500
+    reasoning: "System design and component relationships need comprehensive coverage"
+    typical_additions:
+      - "system_diagrams": 500
+      - "component_analysis": 400
+      - "design_decisions": 400
+      - "architecture_patterns": 200
+    
+  security:
+    additional_budget: 800
+    reasoning: "Security analysis and compliance documentation"
+    typical_additions:
+      - "security_analysis": 300
+      - "threat_modeling": 250
+      - "compliance_requirements": 250
+    
+  devops:
+    additional_budget: 1200
+    reasoning: "Infrastructure and deployment documentation"
+    typical_additions:
+      - "deployment_procedures": 400
+      - "infrastructure_setup": 400
+      - "monitoring_configuration": 400
+    
+  user:
+    additional_budget: 600
+    reasoning: "User workflows and business requirements"
+    typical_additions:
+      - "user_journeys": 300
+      - "feature_descriptions": 200
+      - "acceptance_criteria": 100
+
+# Budget distribution strategies
+distribution_strategies:
+  balanced:
+    description: "Equal distribution across all sections"
+    allocation_method: "equal_split"
+    overhead_percentage: 10
+    
+  priority_weighted:
+    description: "More tokens for high-priority sections"
+    allocation_method: "weighted_by_priority"
+    overhead_percentage: 15
+    priority_weights:
+      required_sections: 1.5
+      optional_sections: 1.0
+      
+  specialist_focused:
+    description: "Allocate based on specialist expertise"
+    allocation_method: "specialist_expertise"
+    overhead_percentage: 20
+    expertise_multipliers:
+      primary_specialist: 1.8
+      secondary_specialist: 1.2
+      supporting_specialist: 0.8
+
+# Truncation strategies when over budget
+truncation_strategies:
+  section_priority:
+    description: "Remove optional sections first"
+    order:
+      1: "remove_optional_sections"
+      2: "reduce_example_sections"
+      3: "compress_explanations"
+      4: "use_bullet_points"
+    
+  token_compression:
+    description: "Compress content while maintaining information"
+    techniques:
+      - "use_numbered_lists"
+      - "remove_redundant_explanations"
+      - "abbreviate_common_terms"
+      - "use_tables_over_prose"
+      - "reference_external_docs"
+    
+  intelligent_summarization:
+    description: "AI-driven content summarization"
+    target_compression: 0.7  # Reduce to 70% of original
+    preserve_sections: ["overview", "key_components"]
+    summarize_sections: ["examples", "troubleshooting"]
+
+# Budget monitoring and alerts
+monitoring:
+  budget_thresholds:
+    warning: 0.8   # Warn at 80% budget usage
+    critical: 0.95 # Critical at 95% budget usage
+    
+  section_thresholds:
+    max_section_percentage: 0.4  # No section should exceed 40% of total budget
+    min_section_tokens: 50       # Minimum tokens per section
+    
+  quality_metrics:
+    information_density: 0.6     # Information per token ratio
+    readability_score: 0.7       # Readability threshold
+    completeness_score: 0.8      # Section completeness
+
+# Recommendations by use case
+use_case_recommendations:
+  quick_documentation:
+    budget_multiplier: 0.7
+    focus: "essential_sections_only"
+    specialists: ["developer"]
+    
+  comprehensive_documentation:
+    budget_multiplier: 1.5
+    focus: "all_sections_detailed"
+    specialists: ["architect", "developer", "security", "devops"]
+    
+  maintenance_update:
+    budget_multiplier: 0.5
+    focus: "changed_sections_only"
+    specialists: ["developer"]
+    
+  compliance_documentation:
+    budget_multiplier: 1.2
+    focus: "security_and_compliance"
+    specialists: ["security", "architect"]
+
+# Token counting preferences by content type
+content_type_preferences:
+  code_heavy:
+    token_count_method: "tiktoken"
+    reason: "Code tokenization varies significantly by model"
+    fallback_multiplier: 1.5
+    
+  prose_heavy:
+    token_count_method: "heuristic"
+    reason: "Prose is more predictable for heuristic counting"
+    fallback_multiplier: 1.3
+    
+  mixed_content:
+    token_count_method: "tiktoken"
+    reason: "Mixed content benefits from accurate tokenization"
+    fallback_multiplier: 1.4
+    
+  diagram_heavy:
+    token_count_method: "heuristic"
+    reason: "Diagrams are mostly text descriptions"
+    fallback_multiplier: 1.2
+
+# Emergency budget handling
+emergency_handling:
+  budget_exceeded:
+    actions:
+      1: "compress_optional_sections"
+      2: "remove_examples"
+      3: "use_bullet_points"
+      4: "reference_external_docs"
+      5: "split_into_multiple_documents"
+      
+  specialist_over_budget:
+    actions:
+      1: "reduce_specialist_scope"
+      2: "use_primary_specialist_only"
+      3: "defer_to_next_update_cycle"
+      
+  system_over_budget:
+    actions:
+      1: "prioritize_by_manifest_type"
+      2: "use_incremental_generation"
+      3: "fallback_to_basic_templates"

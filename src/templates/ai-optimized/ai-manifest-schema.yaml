@@ -1,0 +1,136 @@
+# AI Manifest Schema Definition
+# Validates AI-optimized documentation manifests
+
+schema_version: "1.0"
+schema_type: "ai_manifest_validation"
+
+# Required top-level fields
+required_fields:
+  - "manifest_version"
+  - "manifest_type"
+  - "display_name"
+  - "template_path"
+  - "default_token_budget"
+  - "specialist_roles"
+  - "ai_output_format"
+  - "validation"
+
+# Field definitions and constraints
+field_definitions:
+  manifest_version:
+    type: "string"
+    pattern: "^\\d+\\.\\d+$"
+    description: "Semantic version of manifest format"
+    
+  manifest_type:
+    type: "string"
+    enum: ["concept", "integration", "architecture", "custom"]
+    description: "Type of documentation this manifest generates"
+    
+  display_name:
+    type: "string"
+    min_length: 3
+    max_length: 100
+    description: "Human-readable name for this manifest"
+    
+  template_path:
+    type: "string"
+    pattern: "^\\.\\./"
+    description: "Relative path to human template file"
+    
+  default_token_budget:
+    type: "integer"
+    minimum: 500
+    maximum: 15000
+    description: "Default token budget for generation"
+    
+  token_count_method_preference:
+    type: "array"
+    items:
+      type: "string"
+      enum: ["tiktoken", "heuristic", "wc"]
+    min_items: 1
+    max_items: 3
+    description: "Ordered preference for token counting methods"
+    
+  specialist_roles:
+    type: "array"
+    items:
+      type: "string"
+      enum: ["developer", "architect", "security", "devops", "user"]
+    min_items: 1
+    description: "Specialist roles that can work with this manifest"
+    
+  lazy_activation_rules:
+    type: "array"
+    items:
+      type: "object"
+      required_properties: ["trigger", "condition", "specialist"]
+      properties:
+        trigger:
+          type: "string"
+        condition:
+          type: "string"
+        specialist:
+          type: "string"
+    description: "Rules for lazy specialist activation"
+    
+  ai_output_format:
+    type: "object"
+    required_properties: ["sections"]
+    properties:
+      sections:
+        type: "array"
+        items:
+          type: "object"
+          required_properties: ["name", "max_tokens", "required"]
+          properties:
+            name:
+              type: "string"
+            max_tokens:
+              type: "integer"
+              minimum: 50
+              maximum: 2000
+            required:
+              type: "boolean"
+            format:
+              type: "string"
+              enum: ["paragraph", "bullet_points", "numbered_list", "numbered_steps", "table", "code_blocks", "qa_pairs", "structured_list", "code_blocks_with_explanation"]
+    description: "AI-specific output format requirements"
+
+# Validation rules
+validation_rules:
+  token_budget_consistency:
+    description: "Sum of section max_tokens should not exceed default_token_budget * 1.5"
+    rule: "sum(ai_output_format.sections[].max_tokens) <= default_token_budget * 1.5"
+    
+  specialist_role_validity:
+    description: "All specialist roles in lazy_activation_rules must be in specialist_roles"
+    rule: "all lazy_activation_rules[].specialist in specialist_roles"
+    
+  template_path_exists:
+    description: "Template path should point to existing file"
+    rule: "file_exists(template_path)"
+
+# Error messages
+error_messages:
+  missing_required_field: "Required field '{field}' is missing"
+  invalid_field_type: "Field '{field}' must be of type {expected_type}"
+  invalid_enum_value: "Field '{field}' must be one of: {allowed_values}"
+  token_budget_exceeded: "Total section tokens ({total}) exceeds budget limit ({limit})"
+  invalid_specialist_role: "Specialist '{specialist}' not found in specialist_roles"
+  template_not_found: "Template file '{path}' does not exist"
+
+# Warnings
+warning_rules:
+  high_token_budget:
+    condition: "default_token_budget > 8000"
+    message: "High token budget may impact performance"
+    
+  many_specialists:
+    condition: "length(specialist_roles) > 4"
+    message: "Many specialists may complicate coordination"
+    
+  no_lazy_activation:
+    condition: "length(lazy_activation_rules) == 0"
+    message: "No lazy activation rules defined - all specialists will be loaded"

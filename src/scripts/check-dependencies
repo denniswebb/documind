@@ -1,0 +1,760 @@
+#!/bin/bash
+
+# DocuMind Dependency Checker
+# Verifies all required tools and packages for the documentation generation system
+
+set -euo pipefail
+
+# Source utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/utils.sh"
+
+# Script metadata
+SCRIPT_NAME="check-dependencies"
+SCRIPT_VERSION="1.0.0"
+
+# Dependency definitions (bash 3.2 compatible)
+# For bash 4+, use associative arrays; for bash 3.2, use lookup functions
+if [[ ${BASH_VERSION%%.*} -ge 4 ]]; then
+    declare -A SYSTEM_DEPS=(
+        ["node"]="Node.js runtime"
+        ["npm"]="Node Package Manager"
+        ["jq"]="JSON processor"
+        ["bc"]="Basic calculator"
+        ["awk"]="Text processing tool"
+        ["grep"]="Text search tool"
+        ["find"]="File search utility"
+        ["wc"]="Word count utility"
+    )
+
+    declare -A OPTIONAL_SYSTEM_DEPS=(
+        ["python3"]="Python 3 for YAML validation fallback"
+        ["ruby"]="Ruby for YAML validation fallback"
+        ["git"]="Version control system"
+        ["curl"]="HTTP client for package installation"
+    )
+
+    declare -A NODE_DEPS=(
+        ["yaml"]="YAML parser and validator"
+        ["tiktoken"]="OpenAI token counting (optional)"
+        ["@scil/mdsplit-js"]="Markdown splitting utility (optional)"
+    )
+else
+    # Bash 3.2 fallback using functions
+    get_system_dep_desc() {
+        case "$1" in
+            node) echo "Node.js runtime" ;;
+            npm) echo "Node Package Manager" ;;
+            jq) echo "JSON processor" ;;
+            bc) echo "Basic calculator" ;;
+            awk) echo "Text processing tool" ;;
+            grep) echo "Text search tool" ;;
+            find) echo "File search utility" ;;
+            wc) echo "Word count utility" ;;
+            *) echo "Unknown dependency" ;;
+        esac
+    }
+
+    get_optional_system_dep_desc() {
+        case "$1" in
+            python3) echo "Python 3 for YAML validation fallback" ;;
+            ruby) echo "Ruby for YAML validation fallback" ;;
+            git) echo "Version control system" ;;
+            curl) echo "HTTP client for package installation" ;;
+            *) echo "Unknown optional dependency" ;;
+        esac
+    }
+
+    get_node_dep_desc() {
+        case "$1" in
+            yaml) echo "YAML parser and validator" ;;
+            tiktoken) echo "OpenAI token counting (optional)" ;;
+            "@scil/mdsplit-js") echo "Markdown splitting utility (optional)" ;;
+            *) echo "Unknown Node.js dependency" ;;
+        esac
+    }
+
+    # Define dependency lists for bash 3.2
+    SYSTEM_DEPS_LIST="node npm jq bc awk grep find wc"
+    OPTIONAL_SYSTEM_DEPS_LIST="python3 ruby git curl"
+    NODE_DEPS_LIST="yaml tiktoken @scil/mdsplit-js"
+fi
+
+# Usage information
+show_dependencies_usage() {
+    show_usage "$SCRIPT_NAME" \
+        "Check and install dependencies for DocuMind utilities" \
+        "$SCRIPT_NAME [OPTIONS] [COMMAND]" \
+        "  $SCRIPT_NAME                       # Check all dependencies
+  $SCRIPT_NAME --install                 # Install missing npm packages
+  $SCRIPT_NAME --report                  # Generate detailed report
+  $SCRIPT_NAME --fix                     # Attempt to fix missing dependencies
+  $SCRIPT_NAME --system-only            # Check system dependencies only
+  $SCRIPT_NAME --node-only               # Check Node.js dependencies only"
+
+    echo
+    echo -e "$(get_color neon_cyan)COMMANDS:$(get_color reset)"
+    echo "  check        Check all dependencies (default)"
+    echo "  install      Install missing npm packages"
+    echo "  report       Generate detailed dependency report"
+    echo "  fix          Attempt to fix missing dependencies"
+    echo "  list         List all required dependencies"
+    echo
+    echo -e "$(get_color neon_cyan)OUTPUT FORMATS:$(get_color reset)"
+    echo "  --json       Output results in JSON format"
+    echo "  --summary    Brief summary only"
+    echo "  --verbose    Detailed output with suggestions"
+}
+
+# Check if system command exists and get version
+check_system_dependency() {
+    local cmd="$1"
+    local description="$2"
+    local required="${3:-true}"
+
+    local status="missing"
+    local version=""
+    local message=""
+
+    if command_exists "$cmd"; then
+        status="available"
+
+        # Try to get version information
+        case "$cmd" in
+            node)
+                version=$(node --version 2>/dev/null | sed 's/^v//' || echo "unknown")
+                ;;
+            npm)
+                version=$(npm --version 2>/dev/null || echo "unknown")
+                ;;
+            jq)
+                version=$(jq --version 2>/dev/null | sed 's/jq-//' || echo "unknown")
+                ;;
+            python3)
+                version=$(python3 --version 2>/dev/null | awk '{print $2}' || echo "unknown")
+                ;;
+            ruby)
+                version=$(ruby --version 2>/dev/null | awk '{print $2}' || echo "unknown")
+                ;;
+            git)
+                version=$(git --version 2>/dev/null | awk '{print $3}' || echo "unknown")
+                ;;
+            *)
+                version=$(${cmd} --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' || echo "unknown")
+                ;;
+        esac
+
+        message="$description available"
+    else
+        message="$description not found"
+
+        # Provide installation suggestions
+        case "$cmd" in
+            node)
+                message+=". Install from https://nodejs.org/ or use package manager"
+                ;;
+            npm)
+                message+=". Usually installed with Node.js"
+                ;;
+            jq)
+                message+=". Install with: brew install jq (macOS) or apt-get install jq (Linux)"
+                ;;
+            bc)
+                message+=". Install with package manager: brew install bc or apt-get install bc"
+                ;;
+            python3)
+                message+=". Install from https://python.org/ or use package manager"
+                ;;
+            ruby)
+                message+=". Usually pre-installed on macOS/Linux, or install via package manager"
+                ;;
+            git)
+                message+=". Install from https://git-scm.com/ or use package manager"
+                ;;
+            curl)
+                message+=". Usually pre-installed, or install via package manager"
+                ;;
+        esac
+    fi
+
+    echo "$cmd|$status|$version|$message|$required"
+}
+
+# Check Node.js package dependency
+check_node_dependency() {
+    local package="$1"
+    local description="$2"
+    local required="${3:-true}"
+
+    local status="missing"
+    local version=""
+    local message=""
+
+    if [[ ! -d "$DOCUMIND_ROOT_DIR" ]]; then
+        message="DocuMind not initialized"
+        echo "$package|$status|$version|$message|$required"
+        return
+    fi
+
+    # Check if package is installed locally
+    local package_path="$DOCUMIND_ROOT_DIR/node_modules/$package"
+    if [[ -d "$package_path" ]]; then
+        status="available"
+
+        # Try to get version from package.json
+        local pkg_json="$package_path/package.json"
+        if [[ -f "$pkg_json" ]]; then
+            version=$(jq -r '.version // "unknown"' "$pkg_json" 2>/dev/null || echo "unknown")
+        fi
+
+        message="$description installed locally"
+    elif command_exists node; then
+        # Try to resolve package via require.resolve
+        local resolved_pkg_path
+        resolved_pkg_path=$(node -p "try { require.resolve('$package/package.json') } catch(e) { '' }" 2>/dev/null)
+        if [[ -n "$resolved_pkg_path" && -f "$resolved_pkg_path" ]]; then
+            status="available"
+            version=$(jq -r '.version // "unknown"' "$resolved_pkg_path" 2>/dev/null || echo "unknown")
+            message="$description available via package resolution"
+        else
+            # If resolve failed, try npm commands
+            if command_exists npm; then
+                # Check if available but not installed
+                if npm list "$package" >/dev/null 2>&1; then
+                    status="available"
+                    version=$(npm list "$package" --depth=0 2>/dev/null | grep "$package" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
+                    message="$description available in project"
+                elif npm list -g "$package" >/dev/null 2>&1; then
+                    status="global"
+                    version=$(npm list -g "$package" --depth=0 2>/dev/null | grep "$package" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
+                    message="$description available globally"
+                else
+                    message="$description not installed. Install with: npm install $package"
+                fi
+            else
+                message="$description not available (npm required for installation)"
+            fi
+        fi
+    elif command_exists npm; then
+        # Node.js not available, try npm only
+        if npm list "$package" >/dev/null 2>&1; then
+            status="available"
+            version=$(npm list "$package" --depth=0 2>/dev/null | grep "$package" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
+            message="$description available in project"
+        elif npm list -g "$package" >/dev/null 2>&1; then
+            status="global"
+            version=$(npm list -g "$package" --depth=0 2>/dev/null | grep "$package" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
+            message="$description available globally"
+        else
+            message="$description not installed. Install with: npm install $package"
+        fi
+    else
+        message="$description not available (npm required for installation)"
+    fi
+
+    echo "$package|$status|$version|$message|$required"
+}
+
+# Generate dependency report
+generate_report() {
+    local format="${1:-text}"
+    local system_only="${2:-false}"
+    local node_only="${3:-false}"
+
+    local all_results=()
+    local missing_count=0
+    local available_count=0
+
+    # Check system dependencies
+    if [[ "$node_only" != "true" ]]; then
+        log_debug "Checking system dependencies..."
+
+        if [[ ${BASH_VERSION%%.*} -ge 4 ]]; then
+            # Bash 4+ with associative arrays
+            for cmd in "${!SYSTEM_DEPS[@]}"; do
+                local result
+                result=$(check_system_dependency "$cmd" "${SYSTEM_DEPS[$cmd]}" "true")
+                all_results+=("system|$result")
+
+                local status
+                status=$(echo "$result" | cut -d'|' -f2)
+                if [[ "$status" == "available" ]]; then
+                    available_count=$((available_count + 1))
+                else
+                    missing_count=$((missing_count + 1))
+                fi
+            done
+
+            for cmd in "${!OPTIONAL_SYSTEM_DEPS[@]}"; do
+                local result
+                result=$(check_system_dependency "$cmd" "${OPTIONAL_SYSTEM_DEPS[$cmd]}" "false")
+                all_results+=("system_optional|$result")
+
+                local status
+                status=$(echo "$result" | cut -d'|' -f2)
+                if [[ "$status" == "available" ]]; then
+                    available_count=$((available_count + 1))
+                fi
+            done
+        else
+            # Bash 3.2 fallback
+            for cmd in $SYSTEM_DEPS_LIST; do
+                local result
+                result=$(check_system_dependency "$cmd" "$(get_system_dep_desc "$cmd")" "true")
+                all_results+=("system|$result")
+
+                local status
+                status=$(echo "$result" | cut -d'|' -f2)
+                if [[ "$status" == "available" ]]; then
+                    available_count=$((available_count + 1))
+                else
+                    missing_count=$((missing_count + 1))
+                fi
+            done
+
+            for cmd in $OPTIONAL_SYSTEM_DEPS_LIST; do
+                local result
+                result=$(check_system_dependency "$cmd" "$(get_optional_system_dep_desc "$cmd")" "false")
+                all_results+=("system_optional|$result")
+
+                local status
+                status=$(echo "$result" | cut -d'|' -f2)
+                if [[ "$status" == "available" ]]; then
+                    available_count=$((available_count + 1))
+                fi
+            done
+        fi
+    fi
+
+    # Check Node.js dependencies
+    if [[ "$system_only" != "true" ]]; then
+        log_debug "Checking Node.js dependencies..."
+
+        if [[ ${BASH_VERSION%%.*} -ge 4 ]]; then
+            # Bash 4+ with associative arrays
+            for package in "${!NODE_DEPS[@]}"; do
+                local required="true"
+                [[ "$package" =~ tiktoken|@scil/mdsplit-js ]] && required="false"
+
+                local result
+                result=$(check_node_dependency "$package" "${NODE_DEPS[$package]}" "$required")
+                all_results+=("node|$result")
+
+                local status
+                status=$(echo "$result" | cut -d'|' -f2)
+                if [[ "$status" == "available" || "$status" == "global" ]]; then
+                    available_count=$((available_count + 1))
+                elif [[ "$required" == "true" ]]; then
+                    missing_count=$((missing_count + 1))
+                fi
+            done
+        else
+            # Bash 3.2 fallback
+            for package in $NODE_DEPS_LIST; do
+                local required="true"
+                [[ "$package" =~ tiktoken|@scil/mdsplit-js ]] && required="false"
+
+                local result
+                result=$(check_node_dependency "$package" "$(get_node_dep_desc "$package")" "$required")
+                all_results+=("node|$result")
+
+                local status
+                status=$(echo "$result" | cut -d'|' -f2)
+                if [[ "$status" == "available" || "$status" == "global" ]]; then
+                    available_count=$((available_count + 1))
+                elif [[ "$required" == "true" ]]; then
+                    missing_count=$((missing_count + 1))
+                fi
+            done
+        fi
+    fi
+
+    # Output results
+    case "$format" in
+        json)
+            output_json_report "${all_results[@]}"
+            ;;
+        summary)
+            output_summary_report "$available_count" "$missing_count"
+            ;;
+        *)
+            output_text_report "${all_results[@]}"
+            ;;
+    esac
+
+    return $missing_count
+}
+
+# Output text format report
+output_text_report() {
+    local results=("$@")
+
+    log_header "📦 DocuMind Dependency Report"
+    echo
+
+    # System dependencies
+    log_subheader "🖥️  System Dependencies"
+    for result in "${results[@]}"; do
+        [[ "$result" =~ ^system\| ]] || continue
+
+        local type category cmd status version message required
+        IFS='|' read -r type category cmd status version message required <<< "$result"
+
+        local icon="❌"
+        local color="$(get_color hot_pink)"
+
+        case "$status" in
+            available)
+                icon="✅"
+                color="$(get_color green)"
+                ;;
+            missing)
+                if [[ "$required" == "false" ]]; then
+                    icon="⚪"
+                    color="$(get_color gray)"
+                fi
+                ;;
+        esac
+
+        echo -e "  $icon ${color}$cmd$(get_color reset) ($version) - $message"
+    done
+
+    echo
+
+    # Optional system dependencies
+    log_subheader "🔧 Optional System Dependencies"
+    for result in "${results[@]}"; do
+        [[ "$result" =~ ^system_optional\| ]] || continue
+
+        local type category cmd status version message required
+        IFS='|' read -r type category cmd status version message required <<< "$result"
+
+        local icon="⚪"
+        local color="$(get_color gray)"
+
+        if [[ "$status" == "available" ]]; then
+            icon="✅"
+            color="$(get_color green)"
+        fi
+
+        echo -e "  $icon ${color}$cmd$(get_color reset) ($version) - $message"
+    done
+
+    echo
+
+    # Node.js dependencies
+    log_subheader "📦 Node.js Dependencies"
+    for result in "${results[@]}"; do
+        [[ "$result" =~ ^node\| ]] || continue
+
+        local type category package status version message required
+        IFS='|' read -r type category package status version message required <<< "$result"
+
+        local icon="❌"
+        local color="$(get_color hot_pink)"
+
+        case "$status" in
+            available|global)
+                icon="✅"
+                color="$(get_color green)"
+                ;;
+            missing)
+                if [[ "$required" == "false" ]]; then
+                    icon="⚪"
+                    color="$(get_color gray)"
+                fi
+                ;;
+        esac
+
+        echo -e "  $icon ${color}$package$(get_color reset) ($version) - $message"
+    done
+
+    echo
+}
+
+# Output JSON format report
+output_json_report() {
+    local results=("$@")
+
+    local system_deps="[]"
+    local node_deps="[]"
+
+    # Build JSON arrays
+    for result in "${results[@]}"; do
+        local type category name status version message required
+        IFS='|' read -r type category name status version message required <<< "$result"
+
+        local dep_json
+        dep_json=$(jq -n \
+            --arg name "$name" \
+            --arg status "$status" \
+            --arg version "$version" \
+            --arg message "$message" \
+            --arg required "$required" \
+            '{
+                name: $name,
+                status: $status,
+                version: $version,
+                message: $message,
+                required: ($required | test("true"))
+            }')
+
+        case "$category" in
+            system|system_optional)
+                system_deps=$(echo "$system_deps" | jq ". + [$dep_json]")
+                ;;
+            node)
+                node_deps=$(echo "$node_deps" | jq ". + [$dep_json]")
+                ;;
+        esac
+    done
+
+    # Generate final report
+    jq -n \
+        --argjson system_deps "$system_deps" \
+        --argjson node_deps "$node_deps" \
+        '{
+            timestamp: now,
+            system_dependencies: $system_deps,
+            node_dependencies: $node_deps,
+            summary: {
+                system_available: ($system_deps | map(select(.status == "available")) | length),
+                system_missing: ($system_deps | map(select(.status == "missing" and .required)) | length),
+                node_available: ($node_deps | map(select(.status == "available" or .status == "global")) | length),
+                node_missing: ($node_deps | map(select(.status == "missing" and .required)) | length)
+            }
+        }'
+}
+
+# Output summary report
+output_summary_report() {
+    local available_count="$1"
+    local missing_count="$2"
+
+    if [[ $missing_count -eq 0 ]]; then
+        log_success "All required dependencies are available ($available_count total)"
+    else
+        log_error "$missing_count required dependencies are missing ($available_count available)"
+    fi
+}
+
+# Install missing Node.js packages
+install_node_packages() {
+    local fix_mode="${1:-false}"
+
+    if ! command_exists npm; then
+        log_error "npm not available - cannot install Node.js packages"
+        return 1
+    fi
+
+    if [[ ! -f "$DOCUMIND_ROOT_DIR/package.json" ]]; then
+        log_error "package.json not found in $DOCUMIND_ROOT_DIR"
+        return 1
+    fi
+
+    log_info "Installing missing Node.js packages..."
+
+    local packages_to_install=()
+
+    if [[ ${BASH_VERSION%%.*} -ge 4 ]]; then
+        # Bash 4+ with associative arrays
+        for package in "${!NODE_DEPS[@]}"; do
+            local required="true"
+            [[ "$package" =~ tiktoken|@scil/mdsplit-js ]] && required="false"
+
+            local result
+            result=$(check_node_dependency "$package" "${NODE_DEPS[$package]}" "$required")
+
+            local status required_flag
+            IFS='|' read -r _ status _ _ required_flag <<< "$result"
+
+            # Only add to install list if package is missing AND required
+            if [[ "$status" == "missing" && "$required_flag" == "true" ]]; then
+                packages_to_install+=("$package")
+            fi
+        done
+    else
+        # Bash 3.2 fallback
+        for package in $NODE_DEPS_LIST; do
+            local required="true"
+            [[ "$package" =~ tiktoken|@scil/mdsplit-js ]] && required="false"
+
+            local result
+            result=$(check_node_dependency "$package" "$(get_node_dep_desc "$package")" "$required")
+
+            local status required_flag
+            IFS='|' read -r _ status _ _ required_flag <<< "$result"
+
+            # Only add to install list if package is missing AND required
+            if [[ "$status" == "missing" && "$required_flag" == "true" ]]; then
+                packages_to_install+=("$package")
+            fi
+        done
+    fi
+
+    if [[ ${#packages_to_install[@]} -eq 0 ]]; then
+        log_success "All Node.js packages are already installed"
+        return 0
+    fi
+
+    local install_cmd="npm install"
+    [[ "$fix_mode" == "true" ]] && install_cmd+=" --save"
+
+    for package in "${packages_to_install[@]}"; do
+        log_info "Installing $package..."
+
+        if (cd "$DOCUMIND_ROOT_DIR" && $install_cmd "$package"); then
+            log_success "Installed $package"
+        else
+            log_warning "Failed to install $package (may be optional)"
+        fi
+    done
+}
+
+# Main function
+main() {
+    # Use individual variables for bash 3.2 compatibility
+    local args_help="false"
+    local args_debug="false"
+    local args_quiet="false"
+    local args_command="check"
+    local args_format="text"
+    local args_install="false"
+    local args_fix="false"
+    local args_system_only="false"
+    local args_node_only="false"
+    local args_report="false"
+
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -h|--help)
+                args_help="true"
+                shift
+                ;;
+            -v|--verbose|--debug)
+                DOCUMIND_DEBUG=true
+                args_debug="true"
+                args_format="text"
+                shift
+                ;;
+            -q|--quiet)
+                DOCUMIND_QUIET=true
+                args_quiet="true"
+                shift
+                ;;
+            --json)
+                args_format="json"
+                shift
+                ;;
+            --summary)
+                args_format="summary"
+                shift
+                ;;
+            --install)
+                args_install="true"
+                args_command="install"
+                shift
+                ;;
+            --fix)
+                args_fix="true"
+                args_command="fix"
+                shift
+                ;;
+            --report)
+                args_report="true"
+                args_command="report"
+                shift
+                ;;
+            --system-only)
+                args_system_only="true"
+                shift
+                ;;
+            --node-only)
+                args_node_only="true"
+                shift
+                ;;
+            check|install|report|fix|list)
+                args_command="$1"
+                shift
+                ;;
+            -*)
+                die "Unknown option: $1"
+                ;;
+            *)
+                die "Unknown argument: $1"
+                ;;
+        esac
+    done
+
+    # Handle help
+    if [[ "$args_help" == "true" ]]; then
+        show_dependencies_usage
+        exit 0
+    fi
+
+    # Initialize DocuMind paths
+    init_documind_paths
+
+    # Execute command
+    case "$args_command" in
+        check)
+            generate_report "$args_format" "$args_system_only" "$args_node_only"
+            exit $?
+            ;;
+        install)
+            install_node_packages
+            exit $?
+            ;;
+        fix)
+            install_node_packages "true"
+            exit $?
+            ;;
+        report)
+            generate_report "text" "$args_system_only" "$args_node_only"
+            exit $?
+            ;;
+        list)
+            echo "System Dependencies:"
+            if [[ ${BASH_VERSION%%.*} -ge 4 ]]; then
+                for cmd in "${!SYSTEM_DEPS[@]}"; do
+                    echo "  $cmd - ${SYSTEM_DEPS[$cmd]}"
+                done
+            else
+                for cmd in $SYSTEM_DEPS_LIST; do
+                    echo "  $cmd - $(get_system_dep_desc "$cmd")"
+                done
+            fi
+            echo
+            echo "Optional System Dependencies:"
+            if [[ ${BASH_VERSION%%.*} -ge 4 ]]; then
+                for cmd in "${!OPTIONAL_SYSTEM_DEPS[@]}"; do
+                    echo "  $cmd - ${OPTIONAL_SYSTEM_DEPS[$cmd]}"
+                done
+            else
+                for cmd in $OPTIONAL_SYSTEM_DEPS_LIST; do
+                    echo "  $cmd - $(get_optional_system_dep_desc "$cmd")"
+                done
+            fi
+            echo
+            echo "Node.js Dependencies:"
+            if [[ ${BASH_VERSION%%.*} -ge 4 ]]; then
+                for pkg in "${!NODE_DEPS[@]}"; do
+                    echo "  $pkg - ${NODE_DEPS[$pkg]}"
+                done
+            else
+                for pkg in $NODE_DEPS_LIST; do
+                    echo "  $pkg - $(get_node_dep_desc "$pkg")"
+                done
+            fi
+            ;;
+        *)
+            die "Unknown command: $args_command"
+            ;;
+    esac
+}
+
+# Run main function if script is executed directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi

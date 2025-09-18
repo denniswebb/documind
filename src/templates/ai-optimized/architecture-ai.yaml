@@ -1,0 +1,110 @@
+# AI-Optimized Architecture Documentation Manifest
+# Defines how AI agents should generate system architecture documentation
+
+manifest_version: "1.0"
+manifest_type: "architecture"
+display_name: "Architecture Documentation"
+description: "AI-driven system architecture analysis and documentation"
+
+# Template reference
+template_path: "../architecture.md"
+output_path_pattern: "docs/01-getting-oriented/03-architecture.md"
+
+# Token management
+default_token_budget: 6000
+token_count_method_preference: ["tiktoken", "heuristic", "wc"]
+max_token_limit: 10000
+token_optimization_enabled: true
+
+# Diagram preferences
+diagram_hint: "mermaid"
+diagram_types:
+  - "system_context"
+  - "component_diagram"
+  - "data_flow"
+  - "deployment_diagram"
+
+# Specialist configuration
+specialist_roles:
+  - "architect"
+  - "developer"
+  - "devops"
+  - "security"
+
+# Lazy activation rules
+lazy_activation_rules:
+  - trigger: "system_design_analysis"
+    condition: "always"
+    specialist: "architect"
+  - trigger: "security_architecture_review"
+    condition: "contains_auth_or_security_patterns"
+    specialist: "security"
+  - trigger: "deployment_architecture"
+    condition: "contains_infrastructure_config"
+    specialist: "devops"
+  - trigger: "implementation_details"
+    condition: "code_structure_analysis"
+    specialist: "developer"
+
+# AI-specific output format
+ai_output_format:
+  sections:
+    - name: "overview"
+      max_tokens: 400
+      required: true
+      format: "paragraph"
+    - name: "system_context"
+      max_tokens: 600
+      required: true
+      format: "bullet_points"
+    - name: "core_components"
+      max_tokens: 1200
+      required: true
+      format: "structured_list"
+    - name: "data_architecture"
+      max_tokens: 800
+      required: true
+      format: "numbered_steps"
+    - name: "api_architecture"
+      max_tokens: 600
+      required: true
+      format: "table"
+    - name: "security_architecture"
+      max_tokens: 700
+      required: true
+      format: "bullet_points"
+    - name: "deployment_architecture"
+      max_tokens: 500
+      required: false
+      format: "structured_list"
+    - name: "design_decisions"
+      max_tokens: 600
+      required: false
+      format: "qa_pairs"
+
+# Orchestrator patterns reference
+orchestrator_patterns:
+  system_md_reference: "src/core/system.md"
+  activation_patterns: "lazy_specialist_activation"
+  coordination_method: "sequential_with_handoff"
+
+# Validation
+validation:
+  schema_ref: "ai-manifest-schema.yaml"
+  required_fields: ["overview", "system_context", "core_components"]
+
+# Natural language support
+synonyms_supported: true
+natural_language_triggers:
+  - "document the architecture"
+  - "explain system design"
+  - "create architecture docs"
+  - "analyze system structure"
+
+# Storage configuration
+storage_in_manifest_allowed: true
+embedded_metadata:
+  last_token_count: null
+  last_updated: null
+  validation_status: "pending"
+  diagram_count: 0

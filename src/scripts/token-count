@@ -1,0 +1,480 @@
+#!/bin/bash
+
+# DocuMind Token Counter
+# Bash wrapper for token counting with Node.js integration and fallback methods
+
+set -euo pipefail
+
+# Source utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/utils.sh"
+
+# Script metadata
+SCRIPT_NAME="token-count"
+SCRIPT_VERSION="1.0.0"
+
+# Default configuration
+DEFAULT_BUDGET=4000
+DEFAULT_FORMAT="text"
+
+# Usage information
+show_token_count_usage() {
+    show_usage "$SCRIPT_NAME" \
+        "Count tokens in text files with tiktoken integration" \
+        "$SCRIPT_NAME [OPTIONS] [FILE...]" \
+        "  $SCRIPT_NAME document.md                    # Count tokens in single file
+  $SCRIPT_NAME --budget=500 *.md             # Check files against token budget
+  echo 'Hello world' | $SCRIPT_NAME          # Count tokens from stdin
+  $SCRIPT_NAME --json docs/                  # JSON output for directory
+  $SCRIPT_NAME --format=csv *.txt            # CSV format for multiple files
+  $SCRIPT_NAME --method=heuristic file.md    # Force heuristic counting"
+
+    echo
+    echo -e "$(get_color neon_cyan)TOKEN COUNTING METHODS:$(get_color reset)"
+    echo "  tiktoken     Use Node.js tiktoken package (most accurate)"
+    echo "  heuristic    Use word-based estimation (fast, reasonably accurate)"
+    echo "  basic        Simple character-based counting (fastest, least accurate)"
+    echo "  auto         Automatically select best available method (default)"
+    echo
+    echo -e "$(get_color neon_cyan)OUTPUT FORMATS:$(get_color reset)"
+    echo "  text         Human-readable text output (default)"
+    echo "  json         JSON format for programmatic use"
+    echo "  csv          CSV format for spreadsheet import"
+    echo "  summary      Brief summary suitable for scripts"
+}
+
+# Count tokens using Node.js tiktoken
+count_tokens_tiktoken() {
+    local file="$1"
+    local json_output="$2"
+
+    if ! command_exists node; then
+        log_debug "Node.js not available, skipping tiktoken method"
+        return 1
+    fi
+
+
+    local args=()
+    [[ "$json_output" == "true" ]] && args+=("--json")
+
+    if [[ "$file" == "-" ]]; then
+        # Read from stdin and pass to node script
+        if [[ ${#args[@]} -gt 0 ]]; then
+            run_node_script "token_count.js" "${args[@]}"
+        else
+            run_node_script "token_count.js"
+        fi
+    else
+        if [[ ${#args[@]} -gt 0 ]]; then
+            run_node_script "token_count.js" "${args[@]}" "$file"
+        else
+            run_node_script "token_count.js" "$file"
+        fi
+    fi
+}
+
+# Count tokens using heuristic method (word-based estimation)
+count_tokens_heuristic() {
+    local file="$1"
+    local json_output="$2"
+
+    local content
+    if [[ "$file" == "-" ]]; then
+        content=$(cat)
+    else
+        validate_file_path "$file" true
+        content=$(cat "$file")
+    fi
+
+    # Heuristic: roughly 0.75 tokens per word for English text
+    local words
+    words=$(echo "$content" | wc -w | xargs)
+    local tokens=$(echo "$words * 0.75" | bc | cut -d. -f1)
+
+    # Additional tokens for punctuation and formatting
+    local chars
+    chars=$(echo "$content" | wc -c | xargs)
+    local punct_tokens=$(echo "$chars / 100" | bc)
+    tokens=$((tokens + punct_tokens))
+
+    if [[ "$json_output" == "true" ]]; then
+        jq -n \
+            --arg file "${file}" \
+            --argjson tokens "$tokens" \
+            --argjson words "$words" \
+            --argjson chars "$chars" \
+            --arg method "heuristic" \
+            '{
+                file: $file,
+                tokens: $tokens,
+                words: $words,
+                characters: $chars,
+                method: $method,
+                confidence: "medium"
+            }'
+    else
+        echo "$tokens"
+    fi
+}
+
+# Count tokens using basic character estimation
+count_tokens_basic() {
+    local file="$1"
+    local json_output="$2"
+
+    local content
+    if [[ "$file" == "-" ]]; then
+        content=$(cat)
+    else
+        validate_file_path "$file" true
+        content=$(cat "$file")
+    fi
+
+    local chars
+    chars=$(echo "$content" | wc -c | xargs)
+    # Basic estimation: roughly 4 characters per token
+    local tokens=$((chars / 4))
+
+    if [[ "$json_output" == "true" ]]; then
+        jq -n \
+            --arg file "${file}" \
+            --argjson tokens "$tokens" \
+            --argjson chars "$chars" \
+            --arg method "basic" \
+            '{
+                file: $file,
+                tokens: $tokens,
+                characters: $chars,
+                method: $method,
+                confidence: "low"
+            }'
+    else
+        echo "$tokens"
+    fi
+}
+
+# Auto-select best available counting method
+count_tokens_auto() {
+    local file="$1"
+    local json_output="$2"
+
+    # Try tiktoken first (most accurate)
+    if count_tokens_tiktoken "$file" "$json_output" 2>/dev/null; then
+        return 0
+    fi
+
+    log_debug "tiktoken not available, falling back to heuristic method"
+    count_tokens_heuristic "$file" "$json_output"
+}
+
+# Count tokens with specified method
+count_tokens() {
+    local file="$1"
+    local method="${2:-auto}"
+    local json_output="${3:-false}"
+
+    case "$method" in
+        tiktoken)
+            count_tokens_tiktoken "$file" "$json_output"
+            ;;
+        heuristic)
+            count_tokens_heuristic "$file" "$json_output"
+            ;;
+        basic)
+            count_tokens_basic "$file" "$json_output"
+            ;;
+        auto)
+            count_tokens_auto "$file" "$json_output"
+            ;;
+        *)
+            die "Unknown counting method: $method"
+            ;;
+    esac
+}
+
+# Process single file
+process_file() {
+    local file="$1"
+    local budget="$2"
+    local method="$3"
+    local format="$4"
+
+    local json_output="false"
+    [[ "$format" == "json" ]] && json_output="true"
+
+    local result
+    result=$(count_tokens "$file" "$method" "$json_output")
+
+    if [[ "$format" == "json" ]]; then
+        echo "$result"
+        return
+    fi
+
+    # Extract token count from result
+    local tokens
+    if [[ "$json_output" == "true" ]]; then
+        tokens=$(echo "$result" | jq -r '.tokens')
+    else
+        tokens="$result"
+    fi
+
+    case "$format" in
+        text)
+            local display_file="$file"
+            [[ "$file" == "-" ]] && display_file="(stdin)"
+
+            if [[ -n "$budget" ]]; then
+                local status="✅"
+                local status_text="within budget"
+                if [[ $tokens -gt $budget ]]; then
+                    status="❌"
+                    status_text="exceeds budget"
+                fi
+                echo "$display_file: $tokens tokens $status ($status_text: $budget)"
+            else
+                echo "$display_file: $tokens tokens"
+            fi
+            ;;
+        csv)
+            local display_file="$file"
+            [[ "$file" == "-" ]] && display_file="stdin"
+            local budget_status=""
+            if [[ -n "$budget" ]]; then
+                budget_status=$([[ $tokens -gt $budget ]] && echo "exceeds" || echo "within")
+            fi
+            echo "$display_file,$tokens,$budget,$budget_status"
+            ;;
+        summary)
+            echo "$tokens"
+            ;;
+    esac
+}
+
+# Process multiple files
+process_files() {
+    local format="$1"
+    local budget="$2"
+    local method="$3"
+    local files=("${@:4}")
+
+    # CSV header
+    if [[ "$format" == "csv" ]]; then
+        echo "file,tokens,budget,status"
+    fi
+
+    local total_tokens=0
+    local file_count=0
+    local over_budget_count=0
+    local json_results=()
+
+    for file in "${files[@]}"; do
+        local tokens
+        local result
+        result=$(process_file "$file" "$budget" "$method" "$format")
+
+        if [[ "$format" == "json" ]]; then
+            # Collect JSON results for later assembly
+            json_results+=("$result")
+        fi
+
+        if [[ "$format" == "summary" ]]; then
+            tokens="$result"
+        elif [[ "$format" != "json" ]]; then
+            echo "$result"
+            # Extract tokens for summary calculation
+            if [[ "$result" =~ ([0-9]+)\ tokens ]]; then
+                tokens="${BASH_REMATCH[1]}"
+            fi
+        else
+            # Extract tokens from JSON for summary
+            tokens=$(echo "$result" | jq -r '.tokens // 0' 2>/dev/null || echo "0")
+        fi
+
+        total_tokens=$((total_tokens + tokens))
+        file_count=$((file_count + 1))
+
+        if [[ -n "$budget" && $tokens -gt $budget ]]; then
+            over_budget_count=$((over_budget_count + 1))
+        fi
+    done
+
+    # Output JSON format for multiple files
+    if [[ "$format" == "json" && $file_count -gt 1 ]]; then
+        local files_json=""
+        for result in "${json_results[@]}"; do
+            if [[ -n "$files_json" ]]; then
+                files_json+=","
+            fi
+            files_json+="$result"
+        done
+
+        jq -n \
+            --argjson files "[$files_json]" \
+            --argjson total_tokens "$total_tokens" \
+            --argjson file_count "$file_count" \
+            --argjson over_budget_count "$over_budget_count" \
+            --arg budget "$budget" \
+            '{
+                files: $files,
+                summary: {
+                    total_files: $file_count,
+                    total_tokens: $total_tokens,
+                    average_tokens: ($total_tokens / $file_count | floor),
+                    budget: $budget,
+                    over_budget_count: $over_budget_count
+                }
+            }'
+        return
+    elif [[ "$format" == "json" && $file_count -eq 1 ]]; then
+        # For single file, output the result directly
+        echo "${json_results[0]}"
+        return
+    fi
+
+    # Show summary for multiple files (except JSON format which was handled above)
+    if [[ $file_count -gt 1 ]]; then
+        local avg_tokens=$((total_tokens / file_count))
+
+        case "$format" in
+            text)
+                echo
+                echo "Summary: $file_count files, $total_tokens total tokens, $avg_tokens average"
+                if [[ -n "$budget" && $over_budget_count -gt 0 ]]; then
+                    echo "⚠️  $over_budget_count files exceed budget of $budget tokens"
+                fi
+                ;;
+            csv)
+                echo "SUMMARY,$total_tokens,$budget,$over_budget_count/$file_count over budget"
+                ;;
+            summary)
+                echo "$total_tokens"
+                ;;
+        esac
+    fi
+}
+
+# Main function
+main() {
+    # Use individual variables for bash 3.2 compatibility
+    local args_help="false"
+    local args_debug="false"
+    local args_quiet="false"
+    local args_format="$DEFAULT_FORMAT"
+    local args_budget=""
+    local args_method="auto"
+    local args_input=""
+    local args_files=""
+
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -h|--help)
+                args_help="true"
+                shift
+                ;;
+            -v|--verbose|--debug)
+                DOCUMIND_DEBUG=true
+                args_debug="true"
+                shift
+                ;;
+            -q|--quiet)
+                DOCUMIND_QUIET=true
+                args_quiet="true"
+                shift
+                ;;
+            --json)
+                args_format="json"
+                shift
+                ;;
+            --csv)
+                args_format="csv"
+                shift
+                ;;
+            --summary)
+                args_format="summary"
+                shift
+                ;;
+            --format=*)
+                args_format="${1#*=}"
+                shift
+                ;;
+            --budget=*)
+                args_budget="${1#*=}"
+                shift
+                ;;
+            --method=*)
+                args_method="${1#*=}"
+                shift
+                ;;
+            -*)
+                die "Unknown option: $1"
+                ;;
+            *)
+                if [[ -z "$args_input" ]]; then
+                    args_input="$1"
+                else
+                    args_files+="$1 "
+                fi
+                shift
+                ;;
+        esac
+    done
+
+    # Handle help
+    if [[ "$args_help" == "true" ]]; then
+        show_token_count_usage
+        exit 0
+    fi
+
+    # Initialize DocuMind paths
+    init_documind_paths
+
+    # Determine input files
+    local files=()
+
+    if [[ -n "$args_input" ]]; then
+        files+=("$args_input")
+    fi
+
+    if [[ -n "$args_files" ]]; then
+        read -ra additional_files <<< "$args_files"
+        files+=("${additional_files[@]}")
+    fi
+
+    # If no files specified, read from stdin
+    if [[ ${#files[@]} -eq 0 ]]; then
+        files=("-")
+    fi
+
+    # Expand directories and glob patterns
+    local expanded_files=()
+    for file in "${files[@]}"; do
+        if [[ "$file" == "-" ]]; then
+            expanded_files+=("$file")
+        elif [[ -d "$file" ]]; then
+            # Add all text files in directory
+            while IFS= read -r -d '' found_file; do
+                expanded_files+=("$found_file")
+            done < <(find "$file" -type f \( -name "*.md" -o -name "*.txt" -o -name "*.rst" \) -print0 2>/dev/null)
+        elif [[ -f "$file" ]]; then
+            expanded_files+=("$file")
+        else
+            # Try glob expansion
+            for glob_file in $file; do
+                [[ -f "$glob_file" ]] && expanded_files+=("$glob_file")
+            done
+        fi
+    done
+
+    if [[ ${#expanded_files[@]} -eq 0 ]]; then
+        die "No input files found"
+    fi
+
+    # Process files
+    process_files "$args_format" "$args_budget" "$args_method" "${expanded_files[@]}"
+}
+
+# Run main function if script is executed directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi

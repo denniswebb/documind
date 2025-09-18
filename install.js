@@ -366,13 +366,21 @@ EXAMPLES:
 
 AFTER INSTALLATION:
   Use these commands with your AI assistant:
-  
+
   /document                       # Interactive mode (shows available commands)
   /document bootstrap             # Generate complete documentation
   /document expand [concept]      # Document specific concepts
   /document update [section]      # Update existing sections
   /document analyze [integration] # Document external integrations
   /document [free-form request]   # Ask anything! (Recommended)
+
+BASH UTILITIES:
+  npm run token-count [file]      # Count tokens in files
+  npm run validate-yaml [file]    # Validate YAML manifests
+  npm run split-markdown [file]   # Split large markdown files
+  npm run check-deps              # Check system dependencies
+  npm run generate-docs [mode]    # Generate documentation
+  npm run budget-monitor [dir]    # Monitor token budgets
 
 NATURAL LANGUAGE EXAMPLES:
   "Document the authentication system"
@@ -573,25 +581,28 @@ https://github.com/denniswebb/documind
       console.log('  srcDir:', this.srcDir);
       console.log('  documindDir:', this.documindDir);
     }
-    
+
     console.log(`  ${this.colors.neonCyan}📦 Installing DocuMind core system...${this.colors.reset}`);
-    
+
     // Copy core system files
     await this.copyDirectory(
-      path.join(this.srcDir, 'core'), 
+      path.join(this.srcDir, 'core'),
       path.join(this.documindDir, 'core')
     );
-    
+
     // Copy templates
     await this.copyDirectory(
-      path.join(this.srcDir, 'templates'), 
+      path.join(this.srcDir, 'templates'),
       path.join(this.documindDir, 'templates')
     );
-    
+
+    // Setup bash utilities
+    await this.setupBashUtilities();
+
     if (this.debug) {
-      console.log('🐛 DEBUG: Copied core/ and templates/ only');
+      console.log('🐛 DEBUG: Copied core/, templates/, and bash utilities');
     }
-    
+
     console.log('  ✓ DocuMind core system installed');
   }
 
@@ -629,6 +640,158 @@ https://github.com/denniswebb/documind
       } else {
         await this.ensureDir(path.dirname(destPath));
         await fs.copyFile(srcPath, destPath);
+      }
+    }
+  }
+
+  async setupBashUtilities() {
+    console.log(`  ${this.colors.neonCyan}🔧 Setting up bash utilities...${this.colors.reset}`);
+
+    const scriptsDir = path.join(this.documindDir, 'scripts');
+    await this.ensureDir(scriptsDir);
+
+    // Check if we're copying from the current repository (development mode)
+    const sourceScriptsDir = path.join(this.srcDir, 'scripts');
+
+    if (this.debug) {
+      console.log('🐛 DEBUG: setupBashUtilities()');
+      console.log('  scriptsDir:', scriptsDir);
+      console.log('  sourceScriptsDir:', sourceScriptsDir);
+    }
+
+    // Copy bash utilities if they exist in the source
+    if (await this.exists(sourceScriptsDir)) {
+      if (this.debug) {
+        console.log('🐛 DEBUG: Copying bash utilities from development source');
+      }
+
+      // Copy only bash utility files (not Node.js scripts)
+      await this.copyBashUtilities(sourceScriptsDir, scriptsDir);
+
+      // Set executable permissions on all scripts
+      await this.setBashUtilityPermissions(scriptsDir);
+
+      console.log('  ✓ Bash utilities installed');
+    } else {
+      if (this.debug) {
+        console.log('🐛 DEBUG: Bash utilities not found in source, will be available after first install');
+      }
+      console.log('  ⚠️  Bash utilities will be available after installation completes');
+    }
+
+    // Run dependency check if available
+    await this.checkBashDependencies(scriptsDir);
+  }
+
+  async copyBashUtilities(sourceDir, destDir) {
+    if (this.debug) {
+      console.log('🐛 DEBUG: copyBashUtilities()');
+      console.log('  sourceDir:', sourceDir);
+      console.log('  destDir:', destDir);
+    }
+
+    await this.ensureDir(destDir);
+
+    try {
+      const entries = await fs.readdir(sourceDir, { withFileTypes: true });
+
+      for (const entry of entries) {
+        if (entry.isFile()) {
+          const sourcePath = path.join(sourceDir, entry.name);
+          const destPath = path.join(destDir, entry.name);
+
+          // Only copy bash utilities (exclude Node.js scripts and other files)
+          if (this.isBashUtility(entry.name)) {
+            await fs.copyFile(sourcePath, destPath);
+
+            if (this.debug) {
+              console.log(`🐛 DEBUG: Copied bash utility: ${entry.name}`);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.warn(`Warning: Could not copy bash utilities: ${error.message}`);
+    }
+  }
+
+  isBashUtility(filename) {
+    // List of bash utilities (exclude Node.js scripts and other files)
+    const bashUtilities = [
+      'utils.sh',
+      'token-count',
+      'validate-yaml',
+      'split-markdown',
+      'check-dependencies',
+      'generate-docs',
+      'budget-monitor'
+    ];
+
+    return bashUtilities.includes(filename);
+  }
+
+  async setBashUtilityPermissions(scriptsDir) {
+    if (this.debug) {
+      console.log('🐛 DEBUG: setBashUtilityPermissions()');
+    }
+
+    try {
+      const entries = await fs.readdir(scriptsDir, { withFileTypes: true });
+
+      for (const entry of entries) {
+        if (entry.isFile() && !entry.name.endsWith('.sh') && !entry.name.endsWith('.md')) {
+          const scriptPath = path.join(scriptsDir, entry.name);
+
+          // Set executable permissions (755)
+          await fs.chmod(scriptPath, 0o755);
+
+          if (this.debug) {
+            console.log(`🐛 DEBUG: Set executable permissions: ${entry.name}`);
+          }
+        }
+      }
+    } catch (error) {
+      console.warn(`Warning: Could not set bash utility permissions: ${error.message}`);
+    }
+  }
+
+  async checkBashDependencies(scriptsDir) {
+    const checkDepsScript = path.join(scriptsDir, 'check-dependencies');
+
+    // Only run check if the script exists and is executable
+    if (await this.exists(checkDepsScript)) {
+      try {
+        const { spawn } = await import('child_process');
+        const { promisify } = await import('util');
+
+        if (this.debug) {
+          console.log('🐛 DEBUG: Running dependency check');
+        }
+
+        // Run check-dependencies with summary output
+        const result = spawn(checkDepsScript, ['--summary'], {
+          stdio: 'pipe',
+          cwd: this.targetDir
+        });
+
+        let output = '';
+        result.stdout.on('data', (data) => {
+          output += data.toString();
+        });
+
+        result.on('close', (code) => {
+          if (code === 0) {
+            console.log('  ✓ Dependencies check passed');
+          } else {
+            console.log(`  ⚠️  ${output.trim()}`);
+            console.log(`  ℹ️  Run 'npm run check-deps --fix' to install missing packages`);
+          }
+        });
+
+      } catch (error) {
+        if (this.debug) {
+          console.log('🐛 DEBUG: Could not run dependency check:', error.message);
+        }
       }
     }
   }

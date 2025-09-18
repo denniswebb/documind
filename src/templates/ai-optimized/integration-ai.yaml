@@ -1,0 +1,106 @@
+# AI-Optimized Integration Documentation Manifest
+# Defines how AI agents should document external service integrations
+
+manifest_version: "1.0"
+manifest_type: "integration"
+display_name: "Integration Documentation"
+description: "AI-driven analysis and documentation of external service integrations"
+
+# Template reference
+template_path: "../integration.md"
+output_path_pattern: "docs/03-integrations/{service_name}.md"
+
+# Token management
+default_token_budget: 4500
+token_count_method_preference: ["tiktoken", "heuristic", "wc"]
+max_token_limit: 7000
+token_optimization_enabled: true
+
+# Code scanning configuration
+required_config_paths:
+  - "package.json"
+  - ".env.example"
+  - "config/"
+  - "src/"
+
+data_extraction_hints:
+  dependency_patterns:
+    - "npm_packages"
+    - "import_statements"
+    - "require_calls"
+  config_patterns:
+    - "API_KEY"
+    - "ENDPOINT"
+    - "SECRET"
+    - "_URL"
+  code_patterns:
+    - "client.{service}"
+    - "api.{service}"
+    - "{service}Client"
+
+# Specialist configuration
+specialist_roles:
+  - "developer"
+  - "devops"
+  - "security"
+
+# Lazy activation rules
+lazy_activation_rules:
+  - trigger: "security_review_needed"
+    condition: "contains_credentials_or_auth"
+    specialist: "security"
+  - trigger: "deployment_config_found"
+    condition: "infrastructure_references"
+    specialist: "devops"
+  - trigger: "api_implementation_details"
+    condition: "code_integration_patterns"
+    specialist: "developer"
+
+# AI-specific output format
+ai_output_format:
+  sections:
+    - name: "overview"
+      max_tokens: 200
+      required: true
+      format: "paragraph"
+    - name: "setup_configuration"
+      max_tokens: 800
+      required: true
+      format: "code_blocks_with_explanation"
+    - name: "integration_points"
+      max_tokens: 600
+      required: true
+      format: "bullet_points"
+    - name: "data_flow"
+      max_tokens: 400
+      required: true
+      format: "numbered_steps"
+    - name: "error_handling"
+      max_tokens: 500
+      required: true
+      format: "table"
+    - name: "monitoring"
+      max_tokens: 300
+      required: false
+      format: "bullet_points"
+
+# Validation
+validation:
+  schema_ref: "ai-manifest-schema.yaml"
+  required_fields: ["overview", "setup_configuration", "integration_points"]
+
+# Natural language support
+synonyms_supported: true
+natural_language_triggers:
+  - "document {service} integration"
+  - "how do we use {service}"
+  - "analyze {service} usage"
+  - "explain {service} setup"
+
+# Storage configuration
+storage_in_manifest_allowed: true
+embedded_metadata:
+  last_token_count: null
+  last_updated: null
+  validation_status: "pending"
+  detected_services: []

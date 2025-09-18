@@ -1,18 +1,32 @@
 # {CONCEPT_NAME}
 
+<!-- AI_PRIORITY: HIGH - Core concept definition and overview -->
+<!-- AI_FORMAT: bullet_points - Convert prose to bullets for AI consumption -->
+
 > **Template Instructions**: Replace `{CONCEPT_NAME}` with the actual concept name. Fill in each section with relevant information. Remove template instructions before saving.
 
 ## Overview
 
+<!-- AI_TRANSFORM: structured - Apply structured formatting for AI optimization -->
 Brief explanation of what this concept is and why it's important to the project.
+
+**Key Purpose**: Define the primary function and value of {CONCEPT_NAME}
+**Project Impact**: Explain how this concept affects the overall system
+**Usage Context**: Describe when and where this concept is applied
 
 ## Key Components
 
+<!-- AI_FORMAT: bullet_points - Maintain bullet format for AI scanning -->
+<!-- AI_PRIORITY: HIGH - Essential structural information -->
+
 - **Component 1**: Description of first key component
-- **Component 2**: Description of second key component  
+- **Component 2**: Description of second key component
 - **Component 3**: Description of third key component
 
 ## How It Works
+
+<!-- AI_FORMAT: numbered_steps - Sequential process for AI understanding -->
+<!-- AI_PRIORITY: MEDIUM - Operational knowledge -->
 
 Step-by-step explanation of how this concept operates within the system:
 
@@ -21,6 +35,9 @@ Step-by-step explanation of how this concept operates within the system:
 3. **Step 3**: Third operation or process
 
 ## Code Examples
+
+<!-- AI_FORMAT: code_blocks - Optimize code for token efficiency -->
+<!-- AI_PRIORITY: LOW - Examples can be compressed or truncated -->
 
 ### Basic Usage
 
@@ -46,6 +63,9 @@ advanced.complexOperation()
 
 ## Configuration
 
+<!-- AI_FORMAT: table - Maintain table format for structured data -->
+<!-- AI_PRIORITY: MEDIUM - Configuration details important for implementation -->
+
 ### Required Settings
 
 | Setting | Type | Description | Default |
@@ -62,19 +82,25 @@ advanced.complexOperation()
 
 ## Common Patterns
 
-### Pattern 1: {Pattern Name}
+<!-- AI_FORMAT: code_blocks - Optimize code patterns for AI scanning -->
+<!-- AI_PRIORITY: LOW - Patterns can be compressed if needed -->
+
+### Pattern 1: {PATTERN_NAME}
 
 ```javascript
 // Example of common usage pattern
 ```
 
-### Pattern 2: {Pattern Name}
+### Pattern 2: {PATTERN_NAME}
 
-```javascript  
+```javascript
 // Example of another common pattern
 ```
 
 ## Troubleshooting
+
+<!-- AI_FORMAT: bullet_points - Structure troubleshooting for quick AI reference -->
+<!-- AI_PRIORITY: MEDIUM - Problem-solving information valuable for AI assistance -->
 
 ### Common Issues
 
@@ -83,7 +109,7 @@ advanced.complexOperation()
 - **Solution**: How to fix it
 
 **Issue**: Description of another problem
-- **Cause**: Why this happens  
+- **Cause**: Why this happens
 - **Solution**: How to fix it
 
 ### Error Messages
