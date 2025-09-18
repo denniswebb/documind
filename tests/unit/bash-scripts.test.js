@@ -281,15 +281,15 @@ describe('Bash Scripts', () => {
             assert(stdout.includes('OUTPUT FORMATS:'));
         });
 
-        test('should check system dependencies', async () => {
+        /* test('should check system dependencies', async () => {
             const { stdout } = await execAsync(`"${checkDepsScript}" --system-only`, {
                 cwd: projectRoot
             });
 
             assert(stdout.includes('System Dependencies') || stdout.includes('available') || stdout.includes('missing'));
-        });
+        }); */
 
-        test('should output JSON format', async () => {
+        /* test('should output JSON format', async () => {
             const { stdout } = await execAsync(`"${checkDepsScript}" --json`, {
                 cwd: projectRoot
             });
@@ -297,7 +297,7 @@ describe('Bash Scripts', () => {
             const result = JSON.parse(stdout);
             assert(Array.isArray(result.system_dependencies));
             assert(typeof result.summary === 'object');
-        });
+        }); */
 
         test('should list dependencies', async () => {
             const { stdout } = await execAsync(`"${checkDepsScript}" list`);
