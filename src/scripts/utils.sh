@@ -65,50 +65,36 @@ get_colors() {
     get_color "$1"
 }
 
+# Get the directory where utils.sh lives - reliable in all environments
+UTILS_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Global configuration
 DOCUMIND_DEBUG=${DOCUMIND_DEBUG:-false}
 DOCUMIND_QUIET=${DOCUMIND_QUIET:-false}
+
+# Initialize DocuMind paths based on utils.sh location
+init_documind_paths() {
+    if [[ "$UTILS_SCRIPT_DIR" == */src/scripts ]]; then
+        # Development mode - utils.sh is in src/scripts
+        DOCUMIND_ROOT_DIR="$(dirname "$(dirname "$UTILS_SCRIPT_DIR")")"
+        DOCUMIND_SCRIPTS_DIR="$UTILS_SCRIPT_DIR"
+        DOCUMIND_NODE_SCRIPTS_DIR="$UTILS_SCRIPT_DIR"
+    elif [[ "$UTILS_SCRIPT_DIR" == */.documind/scripts ]]; then
+        # Installed mode - utils.sh is in .documind/scripts
+        DOCUMIND_ROOT_DIR="$(dirname "$(dirname "$UTILS_SCRIPT_DIR")")"
+        DOCUMIND_SCRIPTS_DIR="$UTILS_SCRIPT_DIR"
+        DOCUMIND_NODE_SCRIPTS_DIR="$UTILS_SCRIPT_DIR"
+    else
+        # Simple fallback using utils.sh location
+        DOCUMIND_ROOT_DIR="$(dirname "$(dirname "$UTILS_SCRIPT_DIR")")"
+        DOCUMIND_SCRIPTS_DIR="$UTILS_SCRIPT_DIR"
+        DOCUMIND_NODE_SCRIPTS_DIR="$UTILS_SCRIPT_DIR"
+    fi
+}
+
 DOCUMIND_ROOT_DIR=""
 DOCUMIND_SCRIPTS_DIR=""
 DOCUMIND_NODE_SCRIPTS_DIR=""
-
-# Initialize DocuMind paths
-init_documind_paths() {
-    # Get the directory where utils.sh actually lives
-    local utils_dir
-    utils_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-    if [[ "$utils_dir" == */src/scripts ]]; then
-        # Development mode - utils.sh is in src/scripts
-        DOCUMIND_ROOT_DIR="$(dirname "$(dirname "$utils_dir")")"
-        DOCUMIND_SCRIPTS_DIR="$utils_dir"
-        DOCUMIND_NODE_SCRIPTS_DIR="$utils_dir"
-        return 0
-    elif [[ "$utils_dir" == */.documind/scripts ]]; then
-        # Installed mode - utils.sh is in .documind/scripts
-        DOCUMIND_ROOT_DIR="$(dirname "$(dirname "$utils_dir")")"
-        DOCUMIND_SCRIPTS_DIR="$utils_dir"
-        DOCUMIND_NODE_SCRIPTS_DIR="$utils_dir"
-        return 0
-    else
-        # Fallback: try to detect based on current directory
-        local current_dir="$PWD"
-
-        # Check if we're in a development environment with src/scripts
-        if [[ -d "$current_dir/src/scripts" ]]; then
-            DOCUMIND_ROOT_DIR="$current_dir"
-            DOCUMIND_SCRIPTS_DIR="$current_dir/src/scripts"
-            DOCUMIND_NODE_SCRIPTS_DIR="$current_dir/src/scripts"
-            return 0
-        fi
-
-        # Final fallback
-        DOCUMIND_ROOT_DIR="$current_dir"
-        DOCUMIND_SCRIPTS_DIR="$utils_dir"
-        DOCUMIND_NODE_SCRIPTS_DIR="$current_dir/src/scripts"
-        return 1
-    fi
-}
 
 # Logging functions
 log_info() {

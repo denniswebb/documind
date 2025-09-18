@@ -6,18 +6,38 @@ import { spawn, exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 const execAsync = promisify(exec);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const projectRoot = path.resolve(__dirname, '../..');
+
+// Find project root by looking for package.json - works in any environment
+function findProjectRoot(startDir) {
+    let currentDir = startDir;
+    while (currentDir !== path.dirname(currentDir)) {
+        try {
+            const packageJsonPath = path.join(currentDir, 'package.json');
+            if (require('fs').existsSync(packageJsonPath)) {
+                return currentDir;
+            }
+        } catch (e) {
+            // Continue searching
+        }
+        currentDir = path.dirname(currentDir);
+    }
+    // Fallback to relative path from test file
+    return path.resolve(__dirname, '../..');
+}
+
+const projectRoot = findProjectRoot(__dirname);
 // Use source scripts for testing during development
 const scriptsDir = path.join(projectRoot, 'src', 'scripts');
 // For installed projects, scripts would be in .documind/scripts
 const installedScriptsDir = path.join(projectRoot, '.documind', 'scripts');
 
-// Test fixtures directory
-const fixturesDir = path.join(__dirname, '../fixtures/bash-scripts');
+// Test fixtures directory - use OS temp directory for universal compatibility
+const fixturesDir = path.join(os.tmpdir(), 'documind-test-fixtures', 'bash-scripts');
 
 describe('Bash Scripts', () => {
     before(async () => {
@@ -147,7 +167,9 @@ describe('Bash Scripts', () => {
 
         test('should validate a valid YAML file', async () => {
             const testFile = path.join(fixturesDir, 'valid.yaml');
-            const { stdout, stderr } = await execAsync(`"${validateYamlScript}" --syntax-only "${testFile}"`);
+            const { stdout, stderr } = await execAsync(`"${validateYamlScript}" --syntax-only "${testFile}"`, {
+                cwd: projectRoot
+            });
 
             assert(stdout.includes('Valid') || !stderr.includes('Invalid'));
         });
@@ -166,7 +188,9 @@ describe('Bash Scripts', () => {
 
         test('should output JSON format', async () => {
             const testFile = path.join(fixturesDir, 'valid.yaml');
-            const { stdout } = await execAsync(`"${validateYamlScript}" --syntax-only --json "${testFile}"`);
+            const { stdout } = await execAsync(`"${validateYamlScript}" --syntax-only --json "${testFile}"`, {
+                cwd: projectRoot
+            });
 
             const result = JSON.parse(stdout);
             assert(typeof result.file === 'string');
@@ -176,7 +200,9 @@ describe('Bash Scripts', () => {
         test('should validate multiple files', async () => {
             const testFile1 = path.join(fixturesDir, 'valid.yaml');
             const testFile2 = path.join(fixturesDir, 'manifest.yaml');
-            const { stdout } = await execAsync(`"${validateYamlScript}" --syntax-only "${testFile1}" "${testFile2}"`);
+            const { stdout } = await execAsync(`"${validateYamlScript}" --syntax-only "${testFile1}" "${testFile2}"`, {
+                cwd: projectRoot
+            });
 
             assert(stdout.includes('YAML files are valid') || stdout.includes('Valid'));
         });
@@ -256,13 +282,17 @@ describe('Bash Scripts', () => {
         });
 
         test('should check system dependencies', async () => {
-            const { stdout } = await execAsync(`"${checkDepsScript}" --system-only`);
+            const { stdout } = await execAsync(`"${checkDepsScript}" --system-only`, {
+                cwd: projectRoot
+            });
 
             assert(stdout.includes('System Dependencies') || stdout.includes('available') || stdout.includes('missing'));
         });
 
         test('should output JSON format', async () => {
-            const { stdout } = await execAsync(`"${checkDepsScript}" --json`);
+            const { stdout } = await execAsync(`"${checkDepsScript}" --json`, {
+                cwd: projectRoot
+            });
 
             const result = JSON.parse(stdout);
             assert(Array.isArray(result.system_dependencies));
@@ -680,15 +710,21 @@ Final thoughts and summary of the splitting process.
             const outputDir = path.join(fixturesDir, 'integration-output');
 
             // Count tokens
-            const { stdout: tokenOutput } = await execAsync(`"${path.join(scriptsDir, 'token-count')}" "${testFile}"`);
+            const { stdout: tokenOutput } = await execAsync(`"${path.join(scriptsDir, 'token-count')}" "${testFile}"`, {
+                cwd: projectRoot
+            });
             assert(tokenOutput.includes('tokens'));
 
             // Check dependencies
-            const { stdout: depsOutput } = await execAsync(`"${path.join(scriptsDir, 'check-dependencies')}" --summary`);
+            const { stdout: depsOutput } = await execAsync(`"${path.join(scriptsDir, 'check-dependencies')}" --summary`, {
+                cwd: projectRoot
+            });
             assert(typeof depsOutput === 'string');
 
             // Monitor budget
-            const { stdout: budgetOutput } = await execAsync(`"${path.join(scriptsDir, 'budget-monitor')}" "${fixturesDir}"`);
+            const { stdout: budgetOutput } = await execAsync(`"${path.join(scriptsDir, 'budget-monitor')}" "${fixturesDir}"`, {
+                cwd: projectRoot
+            });
             assert(budgetOutput.includes('Report') || budgetOutput.includes('files'));
 
             // Cleanup
