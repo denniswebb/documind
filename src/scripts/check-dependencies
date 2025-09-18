@@ -396,9 +396,11 @@ output_text_report() {
     log_subheader "🖥️  System Dependencies"
     for result in "${results[@]}"; do
         [[ "$result" =~ ^system\| ]] || continue
+        # Remove the "system|" prefix for parsing
+        result="${result#system|}"
 
-        local type category cmd status version message required
-        IFS='|' read -r type category cmd status version message required <<< "$result"
+        local cmd status version message required
+        IFS='|' read -r cmd status version message required <<< "$result"
 
         local icon="❌"
         local color="$(get_color hot_pink)"
@@ -425,9 +427,11 @@ output_text_report() {
     log_subheader "🔧 Optional System Dependencies"
     for result in "${results[@]}"; do
         [[ "$result" =~ ^system_optional\| ]] || continue
+        # Remove the "system_optional|" prefix for parsing
+        result="${result#system_optional|}"
 
-        local type category cmd status version message required
-        IFS='|' read -r type category cmd status version message required <<< "$result"
+        local cmd status version message required
+        IFS='|' read -r cmd status version message required <<< "$result"
 
         local icon="⚪"
         local color="$(get_color gray)"
@@ -446,9 +450,11 @@ output_text_report() {
     log_subheader "📦 Node.js Dependencies"
     for result in "${results[@]}"; do
         [[ "$result" =~ ^node\| ]] || continue
+        # Remove the "node|" prefix for parsing
+        result="${result#node|}"
 
-        local type category package status version message required
-        IFS='|' read -r type category package status version message required <<< "$result"
+        local package status version message required
+        IFS='|' read -r package status version message required <<< "$result"
 
         local icon="❌"
         local color="$(get_color hot_pink)"
@@ -481,8 +487,24 @@ output_json_report() {
 
     # Build JSON arrays
     for result in "${results[@]}"; do
-        local type category name status version message required
-        IFS='|' read -r type category name status version message required <<< "$result"
+        # Extract type from prefix
+        local type=""
+        local actual_result=""
+        if [[ "$result" =~ ^system_optional\| ]]; then
+            type="system_optional"
+            actual_result="${result#system_optional|}"
+        elif [[ "$result" =~ ^system\| ]]; then
+            type="system"
+            actual_result="${result#system|}"
+        elif [[ "$result" =~ ^node\| ]]; then
+            type="node"
+            actual_result="${result#node|}"
+        else
+            continue
+        fi
+
+        local name status version message required
+        IFS='|' read -r name status version message required <<< "$actual_result"
 
         local dep_json
         dep_json=$(jq -n \
@@ -499,7 +521,7 @@ output_json_report() {
                 required: ($required | test("true"))
             }')
 
-        case "$category" in
+        case "$type" in
             system|system_optional)
                 system_deps=$(echo "$system_deps" | jq ". + [$dep_json]")
                 ;;
