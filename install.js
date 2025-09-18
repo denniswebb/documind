@@ -778,6 +778,9 @@ https://github.com/denniswebb/documind
         result.stdout.on('data', (data) => {
           output += data.toString();
         });
+        result.stderr.on('data', (data) => {
+          output += data.toString();
+        });
 
         result.on('close', (code) => {
           if (code === 0) {
