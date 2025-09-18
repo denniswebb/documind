@@ -416,20 +416,15 @@ https://github.com/denniswebb/documind
 
   async updateAICommands() {
     // Always overwrite AI tool commands during updates to get latest functionality
-    
-    // Update Claude commands
-    if (await this.exists(path.join(this.targetDir, '.claude'))) {
-      await this.ensureDir(path.join(this.targetDir, '.claude', 'commands'));
-      const commandTemplate = await this.generateClaudeCommandContent();
-      await fs.writeFile(
-        path.join(this.targetDir, '.claude', 'commands', 'document.md'),
-        commandTemplate
-      );
-      
-      if (this.debug) {
-        console.log('🐛 DEBUG: Updated Claude commands');
-      }
-    }
+
+    // Update/create Claude commands
+    await this.ensureDir(path.join(this.targetDir, '.claude', 'commands'));
+    const commandTemplate = await this.generateClaudeCommandContent();
+    await fs.writeFile(
+      path.join(this.targetDir, '.claude', 'commands', 'document.md'),
+      commandTemplate
+    );
+    if (this.debug) console.log('🐛 DEBUG: Updated Claude commands');
     
     // Update Copilot prompts
     if (await this.exists(path.join(this.targetDir, '.github'))) {
