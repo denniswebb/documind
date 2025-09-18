@@ -319,13 +319,16 @@ async function main() {
   // Parse arguments
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-    
+
     switch (arg) {
       case '--schema':
         options.schemaPath = args[++i];
         break;
       case '--debug':
         options.debug = true;
+        break;
+      case '--json':
+        options.json = true;
         break;
       case '--help':
         printHelp();
@@ -348,45 +351,73 @@ async function main() {
   
   try {
     const results = validator.validateMultiple(manifestPaths);
-    
-    let allValid = true;
-    let totalErrors = 0;
-    let totalWarnings = 0;
-    
-    for (const result of results) {
-      const filename = path.basename(result.file);
-      
-      if (result.valid) {
-        console.log(`✓ ${filename}: Valid`);
+
+    if (options.json) {
+      // JSON output for single file (matching bash script expectations)
+      if (results.length === 1) {
+        const result = results[0];
+        const jsonOutput = {
+          file: result.file,
+          status: result.valid ? 'valid' : 'invalid',
+          method: 'nodejs',
+          errors: result.errors,
+          warnings: result.warnings,
+          timestamp: Date.now() / 1000
+        };
+        console.log(JSON.stringify(jsonOutput, null, 2));
       } else {
-        console.log(`✗ ${filename}: Invalid`);
-        allValid = false;
+        // Multiple files - output array
+        console.log(JSON.stringify(results.map(result => ({
+          file: result.file,
+          status: result.valid ? 'valid' : 'invalid',
+          method: 'nodejs',
+          errors: result.errors,
+          warnings: result.warnings,
+          timestamp: Date.now() / 1000
+        })), null, 2));
       }
-      
-      // Show errors
-      for (const error of result.errors) {
-        console.log(`  Error: ${error}`);
-        totalErrors++;
+    } else {
+      // Text output (existing behavior)
+      let allValid = true;
+      let totalErrors = 0;
+      let totalWarnings = 0;
+
+      for (const result of results) {
+        const filename = path.basename(result.file);
+
+        if (result.valid) {
+          console.log(`✓ ${filename}: Valid`);
+        } else {
+          console.log(`✗ ${filename}: Invalid`);
+          allValid = false;
+        }
+
+        // Show errors
+        for (const error of result.errors) {
+          console.log(`  Error: ${error}`);
+          totalErrors++;
+        }
+
+        // Show warnings
+        for (const warning of result.warnings) {
+          console.log(`  Warning: ${warning}`);
+          totalWarnings++;
+        }
+
+        if (result.errors.length === 0 && result.warnings.length === 0) {
+          console.log(`  No issues found`);
+        }
+
+        console.log(''); // Empty line between files
       }
-      
-      // Show warnings
-      for (const warning of result.warnings) {
-        console.log(`  Warning: ${warning}`);
-        totalWarnings++;
-      }
-      
-      if (result.errors.length === 0 && result.warnings.length === 0) {
-        console.log(`  No issues found`);
-      }
-      
-      console.log(''); // Empty line between files
+
+      // Summary
+      console.log(`Summary: ${results.length} files, ${totalErrors} errors, ${totalWarnings} warnings`);
     }
-    
-    // Summary
-    console.log(`Summary: ${results.length} files, ${totalErrors} errors, ${totalWarnings} warnings`);
-    
+
+    const allValid = results.every(result => result.valid);
     if (!allValid) {
-      process.exit(1);
+      process.exit(2); // Schema validation failed - valid YAML but doesn't meet DocuMind requirements
     }
     
   } catch (error) {

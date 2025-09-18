@@ -158,13 +158,36 @@ process_file() {
     local result
     local exit_code
 
-    # Try Node.js validation first
-    if result=$(validate_yaml_nodejs "$file" "$mode" "$json_output" 2>/dev/null); then
-        exit_code=$?
-    else
-        log_debug "Node.js validation failed, using basic validation"
+    # Choose validation method based on mode
+    if [[ "$mode" == "syntax-only" ]]; then
+        # Syntax-only mode: Skip DocuMind schema validation, use basic YAML syntax check only
+        log_debug "Using syntax-only mode - skipping DocuMind schema validation"
         result=$(validate_yaml_basic "$file" "$json_output")
         exit_code=$?
+    else
+        # Default/strict/schema-only modes: Try Node.js DocuMind validation first
+        local nodejs_result
+        local nodejs_exit_code
+
+        # Capture output and exit code from Node.js validator
+        nodejs_result=$(validate_yaml_nodejs "$file" "$mode" "$json_output" 2>/dev/null)
+        nodejs_exit_code=$?
+
+        # Handle different exit codes:
+        # 0 = Success (valid YAML that meets schema)
+        # 1 = System error (YAML parse error, missing dependencies, etc.) - fallback to basic
+        # 2 = Schema validation failed (valid YAML but doesn't meet DocuMind requirements) - use Node.js result
+        if [[ $nodejs_exit_code -eq 0 ]] || [[ $nodejs_exit_code -eq 2 ]]; then
+            # Node.js validator executed successfully (either valid or schema error)
+            result="$nodejs_result"
+            exit_code=$nodejs_exit_code
+            log_debug "Using Node.js validation result (exit code: $nodejs_exit_code)"
+        else
+            # Node.js validation had system error (exit code 1 or 3+), fallback to basic validation
+            log_debug "Node.js validation had system error (exit code: $nodejs_exit_code), using basic validation"
+            result=$(validate_yaml_basic "$file" "$json_output")
+            exit_code=$?
+        fi
     fi
 
     case "$format" in
@@ -232,6 +255,7 @@ process_files() {
     local total_files=0
     local valid_files=0
     local invalid_files=0
+    local last_exit_code=0
 
     # JUnit XML header
     if [[ "$format" == "junit" ]]; then
@@ -246,10 +270,16 @@ process_files() {
         fi
 
         local file_result
-        if file_result=$(process_file "$file" "$format" "$mode" "$schema"); then
+        local file_exit_code
+        file_result=$(process_file "$file" "$format" "$mode" "$schema")
+        file_exit_code=$?
+
+        if [[ $file_exit_code -eq 0 ]]; then
             valid_files=$((valid_files + 1))
         else
             invalid_files=$((invalid_files + 1))
+            # Track the last exit code for single file scenarios
+            last_exit_code=$file_exit_code
         fi
 
         # Output result for JSON format (captured above but not echoed)
@@ -281,7 +311,15 @@ process_files() {
     fi
 
     # Return appropriate exit code
-    [[ $invalid_files -eq 0 ]] && return 0 || return 1
+    # For single file, preserve specific exit code (0=valid, 1=system error, 2=schema error)
+    # For multiple files, use simple pass/fail (0=all valid, 1=some invalid)
+    if [[ $total_files -eq 1 && $invalid_files -eq 1 ]]; then
+        # Single invalid file - preserve the specific exit code from validation
+        return $last_exit_code
+    else
+        # Multiple files or all valid - use simple pass/fail
+        [[ $invalid_files -eq 0 ]] && return 0 || return 1
+    fi
 }
 
 # Process files from stdin

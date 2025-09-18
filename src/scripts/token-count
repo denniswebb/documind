@@ -7,7 +7,25 @@ set -euo pipefail
 
 # Source utilities
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Handle cases where utils.sh might fail to initialize paths (package resolution scenarios)
+# Temporarily disable exit-on-error for sourcing utils.sh
+set +e
 source "$SCRIPT_DIR/utils.sh"
+utils_exit_code=$?
+set -e
+
+if [[ $utils_exit_code -ne 0 ]]; then
+    # Fallback: continue without full DocuMind environment setup
+    log_debug() { [[ "${DOCUMIND_DEBUG:-false}" == "true" ]] && echo "[DEBUG] $*" >&2; }
+    log_error() { echo "[ERROR] $*" >&2; }
+    die() { log_error "$1"; exit "${2:-1}"; }
+    command_exists() { command -v "$1" >/dev/null 2>&1; }
+    get_color() { echo ""; }  # No colors in fallback mode
+    # Stub for run_node_script - always fails in package resolution scenarios
+    run_node_script() { return 1; }
+    # Set minimal environment variables
+    DOCUMIND_NODE_SCRIPTS_DIR=""
+fi
 
 # Script metadata
 SCRIPT_NAME="token-count"
