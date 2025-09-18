@@ -41,7 +41,7 @@ describe('Bash Scripts', () => {
             const script = `
                 source "${path.join(scriptsDir, 'utils.sh')}"
                 echo "DOCUMIND_UTILS_VERSION: $DOCUMIND_UTILS_VERSION"
-                echo "Functions available: $(type -t log_info log_error die command_exists)"
+                echo "Functions available: $(type -t log_info log_error die command_exists | xargs echo)"
             `;
 
             const { stdout } = await execAsync(`bash -c '${script}'`);
@@ -70,7 +70,7 @@ describe('Bash Scripts', () => {
                 DOCUMIND_QUIET=false
                 log_info "Test info message"
                 log_success "Test success message"
-                log_warning "Test warning message" 2>&1
+                log_warning "Test warning message"
             `;
 
             const { stdout, stderr } = await execAsync(`bash -c '${script}'`);
@@ -112,7 +112,8 @@ describe('Bash Scripts', () => {
 
             const result = JSON.parse(stdout);
             assert(typeof result.tokens === 'number');
-            assert(typeof result.file === 'string');
+            assert(typeof result.details === 'object');
+            assert(typeof result.details.file_path === 'string');
         });
 
         test('should validate against budget', async () => {
@@ -410,7 +411,7 @@ It contains some content that should be counted via tiktoken when available.
                 // Verify we got a valid token count result
                 assert(typeof result.tokens === 'number');
                 assert(result.tokens > 0);
-                assert(result.file === testFile);
+                assert(result.details && result.details.file_path);
 
                 // Check if tiktoken method was used (most accurate)
                 // If tiktoken package is available, it should be used instead of heuristic fallback

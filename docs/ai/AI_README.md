@@ -2,9 +2,9 @@
 
 > **🤖 AI Routing Table**: This file serves as the master index for AI-optimized documentation generation. AI agents should read this file first to understand available manifests and routing patterns.
 
-**Generated:** 2025-09-18T10:24:25.596Z
+**Generated:** 2025-09-18T15:22:59.452Z
 **Total Documents:** 1
-**System Status:** **Last Validation:** 2025-09-18T10:24:25.596Z
+**System Status:** **Last Validation:** 2025-09-18T15:22:59.453Z
 **Recently Updated:** 0 files
 **Status:** Active
 
@@ -22,7 +22,7 @@ AI agents should look for manifests in these locations (in order):
 
 ### Other Documents
 
-- **Authentication** - ../tests/temp/ai/authentication-ai.md (20 tokens)
+- **Authentication** - ../tests/temp/ai/authentication-ai.md (28 tokens)
 
 
 
@@ -37,7 +37,7 @@ AI agents should look for manifests in these locations (in order):
 
 | Task Type | Available Documents | Token Range |
 |-----------|-------------------|-------------|
-| Other | Authentication | 20 |
+| Other | Authentication | 28 |
 
 
 <!-- Static fallback routing -->
@@ -58,9 +58,9 @@ AI agents should look for manifests in these locations (in order):
 
 ## Token Budget Summary
 
-**Total Tokens:** 20
-**Average per Document:** 20
-**Largest Document:** 20 tokens
+**Total Tokens:** 28
+**Average per Document:** 28
+**Largest Document:** 28 tokens
 **Document Count:** 1
 
 ## Token Counting Tools

@@ -74,33 +74,40 @@ DOCUMIND_NODE_SCRIPTS_DIR=""
 
 # Initialize DocuMind paths
 init_documind_paths() {
-    local current_dir="$PWD"
+    # Get the directory where utils.sh actually lives
+    local utils_dir
+    utils_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-    # Find .documind directory by walking up the directory tree
-    while [[ "$current_dir" != "/" ]]; do
-        if [[ -d "$current_dir/.documind" ]]; then
+    if [[ "$utils_dir" == */src/scripts ]]; then
+        # Development mode - utils.sh is in src/scripts
+        DOCUMIND_ROOT_DIR="$(dirname "$(dirname "$utils_dir")")"
+        DOCUMIND_SCRIPTS_DIR="$utils_dir"
+        DOCUMIND_NODE_SCRIPTS_DIR="$utils_dir"
+        return 0
+    elif [[ "$utils_dir" == */.documind/scripts ]]; then
+        # Installed mode - utils.sh is in .documind/scripts
+        DOCUMIND_ROOT_DIR="$(dirname "$(dirname "$utils_dir")")"
+        DOCUMIND_SCRIPTS_DIR="$utils_dir"
+        DOCUMIND_NODE_SCRIPTS_DIR="$DOCUMIND_ROOT_DIR/src/scripts"
+        return 0
+    else
+        # Fallback: try to detect based on current directory
+        local current_dir="$PWD"
+
+        # Check if we're in a development environment with src/scripts
+        if [[ -d "$current_dir/src/scripts" ]]; then
             DOCUMIND_ROOT_DIR="$current_dir"
-            DOCUMIND_SCRIPTS_DIR="$current_dir/.documind/scripts"
+            DOCUMIND_SCRIPTS_DIR="$current_dir/src/scripts"
             DOCUMIND_NODE_SCRIPTS_DIR="$current_dir/src/scripts"
             return 0
         fi
-        current_dir="$(dirname "$current_dir")"
-    done
 
-    # Fallback: check if we're in a development environment with src/scripts
-    if [[ -d "$PWD/src/scripts" ]]; then
-        DOCUMIND_ROOT_DIR="$PWD"
-        DOCUMIND_SCRIPTS_DIR="$PWD/src/scripts"
-        DOCUMIND_NODE_SCRIPTS_DIR="$PWD/src/scripts"
-        return 0
+        # Final fallback
+        DOCUMIND_ROOT_DIR="$current_dir"
+        DOCUMIND_SCRIPTS_DIR="$utils_dir"
+        DOCUMIND_NODE_SCRIPTS_DIR="$current_dir/src/scripts"
+        return 1
     fi
-
-    # Final fallback: assume we're in the right place
-    DOCUMIND_ROOT_DIR="$PWD"
-    DOCUMIND_SCRIPTS_DIR="$PWD/.documind/scripts"
-    DOCUMIND_NODE_SCRIPTS_DIR="$PWD/src/scripts"
-
-    return 1
 }
 
 # Logging functions

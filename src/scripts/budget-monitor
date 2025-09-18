@@ -190,11 +190,9 @@ analyze_file() {
 # Monitor directory for budget compliance
 monitor_directory() {
     local dir="$1"
-    local -n args_ref=$2
-
-    local budget="${args_ref["budget"]}"
-    local manifest="${args_ref["manifest"]:-}"
-    local threshold="${args_ref["threshold"]}"
+    local budget="$2"
+    local manifest="$3"
+    local threshold="$4"
 
     if [[ ! -d "$dir" ]]; then
         die "Directory not found: $dir"
@@ -380,10 +378,11 @@ format_prometheus_output() {
 # Watch mode for continuous monitoring
 watch_mode() {
     local dir="$1"
-    local -n args_ref=$2
-
-    local interval="${args_ref["interval"]}"
-    local format="${args_ref["format"]}"
+    local interval="$2"
+    local format="$3"
+    local budget="$4"
+    local manifest="$5"
+    local threshold="$6"
 
     log_info "Starting watch mode (interval: ${interval}s)"
     log_info "Press Ctrl+C to stop"
@@ -394,7 +393,7 @@ watch_mode() {
         echo
 
         local result
-        result=$(monitor_directory "$dir" args_ref)
+        result=$(monitor_directory "$dir" "$budget" "$manifest" "$threshold")
 
         format_output "$result" "$format"
 
@@ -447,100 +446,99 @@ suggest_optimizations() {
 
 # Main function
 main() {
-    local -A args=(
-        ["help"]="false"
-        ["debug"]="false"
-        ["quiet"]="false"
-        ["mode"]="single"
-        ["format"]="text"
-        ["budget"]="$DEFAULT_BUDGET"
-        ["threshold"]="$DEFAULT_THRESHOLD"
-        ["interval"]="$DEFAULT_WATCH_INTERVAL"
-        ["manifest"]=""
-        ["directory"]=""
-        ["watch"]="false"
-        ["report"]="false"
-        ["optimize"]="false"
-        ["alert"]="false"
-    )
+    # Individual variables for bash 3.2 compatibility
+    local help="false"
+    local debug="false"
+    local quiet="false"
+    local mode="single"
+    local format="text"
+    local budget="$DEFAULT_BUDGET"
+    local threshold="$DEFAULT_THRESHOLD"
+    local interval="$DEFAULT_WATCH_INTERVAL"
+    local manifest=""
+    local directory=""
+    local watch="false"
+    local report="false"
+    local optimize="false"
+    local alert="false"
 
     # Parse arguments
     while [[ $# -gt 0 ]]; do
         case $1 in
             -h|--help)
-                args["help"]="true"
+                help="true"
                 shift
                 ;;
             -v|--verbose|--debug)
                 DOCUMIND_DEBUG=true
-                args["debug"]="true"
+                debug="true"
                 shift
                 ;;
             -q|--quiet)
                 DOCUMIND_QUIET=true
-                args["quiet"]="true"
+                quiet="true"
                 shift
                 ;;
             --budget=*)
-                args["budget"]="${1#*=}"
+                budget="${1#*=}"
                 shift
                 ;;
             --threshold=*)
-                args["threshold"]="${1#*=}"
+                threshold="${1#*=}"
                 shift
                 ;;
             --interval=*)
-                args["interval"]="${1#*=}"
+                interval="${1#*=}"
                 shift
                 ;;
             --manifest=*)
-                args["manifest"]="${1#*=}"
+                manifest="${1#*=}"
                 shift
                 ;;
             --json)
-                args["format"]="json"
+                format="json"
                 shift
                 ;;
             --csv)
-                args["format"]="csv"
+                format="csv"
                 shift
                 ;;
             --prometheus)
-                args["format"]="prometheus"
+                format="prometheus"
                 shift
                 ;;
             --watch)
-                args["watch"]="true"
-                args["mode"]="watch"
+                watch="true"
+                mode="watch"
                 shift
                 ;;
             --report)
-                args["report"]="true"
-                args["mode"]="report"
+                report="true"
+                mode="report"
                 shift
                 ;;
             --optimize)
-                args["optimize"]="true"
-                args["mode"]="optimize"
+                optimize="true"
+                mode="optimize"
                 shift
                 ;;
             --alert)
-                args["alert"]="true"
-                args["mode"]="alert"
+                alert="true"
+                mode="alert"
                 shift
                 ;;
             -*)
                 die "Unknown option: $1"
                 ;;
             *)
-                args["directory"]="$1"
+                directory="$1"
                 shift
                 ;;
         esac
     done
 
     # Handle help
-    if [[ "${args["help"]}" == "true" ]]; then
+    if [[ "$help" == "true" ]]; then
         show_budget_usage
         exit 0
     fi
@@ -549,38 +547,38 @@ main() {
     init_documind_paths
 
     # Default to docs directory if not specified
-    if [[ -z "${args["directory"]}" ]]; then
+    if [[ -z "$directory" ]]; then
         if [[ -d "docs" ]]; then
-            args["directory"]="docs"
+            directory="docs"
         elif [[ -d "$DOCUMIND_ROOT_DIR/docs" ]]; then
-            args["directory"]="$DOCUMIND_ROOT_DIR/docs"
+            directory="$DOCUMIND_ROOT_DIR/docs"
         else
             die "No directory specified and no 'docs' directory found"
         fi
     fi
 
     # Validate manifest if specified
-    if [[ -n "${args["manifest"]}" ]]; then
-        parse_manifest "${args["manifest"]}" || die "Invalid manifest file"
+    if [[ -n "$manifest" ]]; then
+        parse_manifest "$manifest" || die "Invalid manifest file"
     fi
 
     # Execute mode
-    case "${args["mode"]}" in
+    case "$mode" in
         single|report)
             local result
-            result=$(monitor_directory "${args["directory"]}" args)
-            format_output "$result" "${args["format"]}"
+            result=$(monitor_directory "$directory" "$budget" "$manifest" "$threshold")
+            format_output "$result" "$format"
 
-            if [[ "${args["optimize"]}" == "true" ]]; then
+            if [[ "$optimize" == "true" ]]; then
                 suggest_optimizations "$result"
             fi
             ;;
         watch)
-            watch_mode "${args["directory"]}" args
+            watch_mode "$directory" "$interval" "$format" "$budget" "$manifest" "$threshold"
             ;;
         alert)
             local result
-            result=$(monitor_directory "${args["directory"]}" args)
+            result=$(monitor_directory "$directory" "$budget" "$manifest" "$threshold")
 
             local over_budget_files
             over_budget_files=$(echo "$result" | jq -r '.summary.over_budget_files')
@@ -595,11 +593,11 @@ main() {
             ;;
         optimize)
             local result
-            result=$(monitor_directory "${args["directory"]}" args)
+            result=$(monitor_directory "$directory" "$budget" "$manifest" "$threshold")
             suggest_optimizations "$result"
             ;;
         *)
-            die "Unknown mode: ${args["mode"]}"
+            die "Unknown mode: $mode"
             ;;
     esac
 }

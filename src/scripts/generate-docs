@@ -79,10 +79,12 @@ check_prerequisites() {
 
 # Bootstrap complete documentation
 bootstrap_documentation() {
-    local -n args_ref=$1
-
-    local output_dir="${args_ref["output"]}"
-    local dry_run="${args_ref["dry_run"]}"
+    local output_dir="$1"
+    local dry_run="$2"
+    local split="$3"
+    local validate="$4"
+    local budget="$5"
+    local replace_original="$6"
 
     log_header "🚀 Bootstrapping Complete Documentation"
 
@@ -124,12 +126,12 @@ bootstrap_documentation() {
     fi
 
     # Handle splitting if enabled
-    if [[ "${args_ref["split"]}" == "true" ]]; then
-        handle_documentation_splitting args_ref "$output_dir"
+    if [[ "$split" == "true" ]]; then
+        handle_documentation_splitting "$output_dir" "$budget" "$dry_run" "$replace_original"
     fi
 
     # Validate if requested
-    if [[ "${args_ref["validate"]}" == "true" ]]; then
+    if [[ "$validate" == "true" ]]; then
         validate_generated_docs "$output_dir"
     fi
 
@@ -138,17 +140,19 @@ bootstrap_documentation() {
 
 # Update existing documentation
 update_documentation() {
-    local -n args_ref=$1
-    local target="${args_ref["target"]:-}"
-
-    local output_dir="${args_ref["output"]}"
-    local dry_run="${args_ref["dry_run"]}"
+    local target="$1"
+    local output_dir="$2"
+    local dry_run="$3"
+    local split="$4"
+    local validate="$5"
+    local budget="$6"
+    local replace_original="$7"
 
     log_header "🔄 Updating Documentation"
 
     if [[ ! -d "$output_dir" ]]; then
         log_warning "Documentation directory not found, bootstrapping instead..."
-        bootstrap_documentation args_ref
+        bootstrap_documentation "$output_dir" "$dry_run" "$split" "$validate" "$budget" "$replace_original"
         return
     fi
 
@@ -186,12 +190,12 @@ update_documentation() {
     fi
 
     # Handle splitting if enabled
-    if [[ "${args_ref["split"]}" == "true" ]]; then
-        handle_documentation_splitting args_ref "$output_dir"
+    if [[ "$split" == "true" ]]; then
+        handle_documentation_splitting "$output_dir" "$budget" "$dry_run" "$replace_original"
     fi
 
     # Validate if requested
-    if [[ "${args_ref["validate"]}" == "true" ]]; then
+    if [[ "$validate" == "true" ]]; then
         validate_generated_docs "$output_dir"
     fi
 
@@ -200,12 +204,10 @@ update_documentation() {
 
 # Handle automatic documentation splitting
 handle_documentation_splitting() {
-    local -n args_ref=$1
-    local output_dir="$2"
-
-    local budget="${args_ref["budget"]}"
-    local dry_run="${args_ref["dry_run"]}"
-    local replace_original="${args_ref["replace_original"]}"
+    local output_dir="$1"
+    local budget="$2"
+    local dry_run="$3"
+    local replace_original="$4"
 
     log_info "Checking for files that need splitting (budget: $budget tokens)..."
 
@@ -461,77 +463,76 @@ validate_generated_docs() {
 
 # Main function
 main() {
-    local -A args=(
-        ["help"]="false"
-        ["debug"]="false"
-        ["quiet"]="false"
-        ["mode"]="$DEFAULT_MODE"
-        ["output"]="$DEFAULT_OUTPUT_DIR"
-        ["budget"]="$DEFAULT_BUDGET"
-        ["split"]="false"
-        ["replace_original"]="false"
-        ["validate"]="false"
-        ["check_deps"]="false"
-        ["dry_run"]="false"
-        ["cleanup"]="false"
-        ["target"]=""
-    )
+    # Individual variables for bash 3.2 compatibility
+    local help="false"
+    local debug="false"
+    local quiet="false"
+    local mode="$DEFAULT_MODE"
+    local output="$DEFAULT_OUTPUT_DIR"
+    local budget="$DEFAULT_BUDGET"
+    local split="false"
+    local replace_original="false"
+    local validate="false"
+    local check_deps="false"
+    local dry_run="false"
+    local cleanup="false"
+    local target=""
 
     # Parse arguments
     while [[ $# -gt 0 ]]; do
         case $1 in
             -h|--help)
-                args["help"]="true"
+                help="true"
                 shift
                 ;;
             -v|--verbose|--debug)
                 DOCUMIND_DEBUG=true
-                args["debug"]="true"
+                debug="true"
                 shift
                 ;;
             -q|--quiet)
                 DOCUMIND_QUIET=true
-                args["quiet"]="true"
+                quiet="true"
                 shift
                 ;;
             --output=*|-o=*)
-                args["output"]="${1#*=}"
+                output="${1#*=}"
                 shift
                 ;;
             --budget=*)
-                args["budget"]="${1#*=}"
+                budget="${1#*=}"
                 shift
                 ;;
             --split)
-                args["split"]="true"
+                split="true"
                 shift
                 ;;
             --replace-original)
-                args["replace_original"]="true"
+                replace_original="true"
                 shift
                 ;;
             --validate)
-                args["validate"]="true"
+                validate="true"
                 shift
                 ;;
             --check-deps)
-                args["check_deps"]="true"
+                check_deps="true"
                 shift
                 ;;
             --dry-run)
-                args["dry_run"]="true"
+                dry_run="true"
                 shift
                 ;;
             --cleanup)
-                args["cleanup"]="true"
+                cleanup="true"
                 shift
                 ;;
             bootstrap|update|expand|analyze|index|search)
-                args["mode"]="$1"
+                mode="$1"
                 shift
                 # Next argument might be a target
                 if [[ $# -gt 0 && ! "$1" =~ ^-- ]]; then
-                    args["target"]="$1"
+                    target="$1"
                     shift
                 fi
                 ;;
@@ -539,8 +540,8 @@ main() {
                 die "Unknown option: $1"
                 ;;
             *)
-                if [[ -z "${args["target"]}" ]]; then
-                    args["target"]="$1"
+                if [[ -z "$target" ]]; then
+                    target="$1"
                 else
                     die "Unexpected argument: $1"
                 fi
@@ -550,7 +551,7 @@ main() {
     done
 
     # Handle help
-    if [[ "${args["help"]}" == "true" ]]; then
+    if [[ "$help" == "true" ]]; then
         show_generate_usage
         exit 0
     fi
@@ -559,36 +560,36 @@ main() {
     init_documind_paths
 
     # Check prerequisites
-    if [[ "${args["check_deps"]}" == "true" ]]; then
+    if [[ "$check_deps" == "true" ]]; then
         check_prerequisites
     fi
 
     # Dry run notification
-    if [[ "${args["dry_run"]}" == "true" ]]; then
+    if [[ "$dry_run" == "true" ]]; then
         log_info "🏃 Dry run mode - no files will be modified"
     fi
 
     # Execute mode
-    case "${args["mode"]}" in
+    case "$mode" in
         bootstrap)
-            bootstrap_documentation args
+            bootstrap_documentation "$output" "$dry_run" "$split" "$validate" "$budget" "$replace_original"
             ;;
         update)
-            update_documentation args
+            update_documentation "$target" "$output" "$dry_run" "$split" "$validate" "$budget" "$replace_original"
             ;;
         expand|analyze|index|search)
-            log_warning "Mode '${args["mode"]}' not yet implemented"
+            log_warning "Mode '$mode' not yet implemented"
             ;;
         *)
-            die "Unknown mode: ${args["mode"]}"
+            die "Unknown mode: $mode"
             ;;
     esac
 
     # Cleanup if requested
-    if [[ "${args["cleanup"]}" == "true" ]]; then
+    if [[ "$cleanup" == "true" ]]; then
         log_info "Cleaning up temporary files..."
-        find "${args["output"]}" -name "*.tmp" -delete 2>/dev/null || true
-        find "${args["output"]}" -name "*.backup-*" -delete 2>/dev/null || true
+        find "$output" -name "*.tmp" -delete 2>/dev/null || true
+        find "$output" -name "*.backup-*" -delete 2>/dev/null || true
     fi
 
     log_success "Documentation generation completed"
