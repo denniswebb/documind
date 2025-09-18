@@ -252,6 +252,11 @@ process_files() {
             invalid_files=$((invalid_files + 1))
         fi
 
+        # Output result for JSON format (captured above but not echoed)
+        if [[ "$format" == "json" ]]; then
+            echo "$file_result"
+        fi
+
         total_files=$((total_files + 1))
 
         # Show progress for many files
