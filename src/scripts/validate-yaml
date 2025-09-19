@@ -1,0 +1,486 @@
+#!/bin/bash
+
+# DocuMind YAML Validator
+# Bash wrapper for YAML validation with batch processing and CI/CD integration
+
+set -euo pipefail
+
+# Source utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/utils.sh"
+
+# Script metadata
+SCRIPT_NAME="validate-yaml"
+SCRIPT_VERSION="1.0.0"
+
+# Default configuration
+DEFAULT_FORMAT="text"
+
+# Usage information
+show_yaml_validate_usage() {
+    show_usage "$SCRIPT_NAME" \
+        "Validate YAML files against DocuMind schema" \
+        "$SCRIPT_NAME [OPTIONS] [FILE...]" \
+        "  $SCRIPT_NAME manifest.yaml                 # Validate single file
+  $SCRIPT_NAME docs/ai/*.yaml              # Validate multiple files
+  $SCRIPT_NAME --json manifests/           # JSON output for directory
+  $SCRIPT_NAME --strict config.yml         # Enable strict validation
+  $SCRIPT_NAME --schema=custom schema.yml  # Use custom schema
+  find . -name '*.yaml' | $SCRIPT_NAME    # Validate from stdin list"
+
+    echo
+    echo -e "$(get_color neon_cyan)VALIDATION MODES:$(get_color reset)"
+    echo "  default      Standard YAML syntax and DocuMind schema validation"
+    echo "  strict       Enable all warnings and strict schema compliance"
+    echo "  syntax-only  Check YAML syntax only (skip schema validation)"
+    echo "  schema-only  Skip syntax check, validate against schema only"
+    echo
+    echo -e "$(get_color neon_cyan)OUTPUT FORMATS:$(get_color reset)"
+    echo "  text         Human-readable text output (default)"
+    echo "  json         JSON format for programmatic use"
+    echo "  junit        JUnit XML format for CI/CD integration"
+    echo "  summary      Brief pass/fail summary"
+    echo
+    echo -e "$(get_color neon_cyan)EXIT CODES:$(get_color reset)"
+    echo "  0            All files valid"
+    echo "  1            One or more files invalid"
+    echo "  2            Invalid arguments or system error"
+}
+
+# Validate YAML using Node.js script
+validate_yaml_nodejs() {
+    local file="$1"
+    local mode="${2:-default}"
+    local json_output="${3:-false}"
+
+    if ! command_exists node; then
+        log_debug "Node.js not available, cannot validate YAML"
+        return 2
+    fi
+
+
+    local args=()
+    [[ "$json_output" == "true" ]] && args+=("--json")
+    [[ "$mode" == "strict" ]] && args+=("--strict")
+
+    if [[ ${#args[@]} -gt 0 ]]; then
+        run_node_script "validate_yaml.js" "${args[@]}" "$file"
+    else
+        run_node_script "validate_yaml.js" "$file"
+    fi
+}
+
+# Basic YAML syntax validation (fallback)
+validate_yaml_basic() {
+    local file="$1"
+    local json_output="${2:-false}"
+
+    validate_file_path "$file" true 5  # 5MB limit for YAML validation
+
+    # Try to parse with basic tools
+    local errors=()
+    local warnings=()
+
+    # Check for basic YAML syntax issues
+    if ! python3 -c "import yaml; yaml.safe_load(open('$file'))" 2>/dev/null; then
+        if ! ruby -ryaml -e "YAML.load_file('$file')" 2>/dev/null; then
+            errors+=("Invalid YAML syntax")
+        fi
+    fi
+
+    # Check for common DocuMind manifest structure
+    if [[ "$file" =~ manifest\.ya?ml$ ]]; then
+        local content
+        content=$(cat "$file")
+
+        # Basic checks for required fields
+        if ! echo "$content" | grep -q "^name:"; then
+            warnings+=("Missing 'name' field")
+        fi
+
+        if ! echo "$content" | grep -q "^description:"; then
+            warnings+=("Missing 'description' field")
+        fi
+
+        if ! echo "$content" | grep -q "^version:"; then
+            warnings+=("Missing 'version' field")
+        fi
+    fi
+
+    local status="valid"
+    [[ ${#errors[@]} -gt 0 ]] && status="invalid"
+
+    if [[ "$json_output" == "true" ]]; then
+        local errors_json=""
+        local warnings_json=""
+
+        if [[ ${#errors[@]} -gt 0 ]]; then
+            errors_json=$(printf '"%s",' "${errors[@]}" | sed 's/,$//')
+        fi
+
+        if [[ ${#warnings[@]} -gt 0 ]]; then
+            warnings_json=$(printf '"%s",' "${warnings[@]}" | sed 's/,$//')
+        fi
+
+        jq -n \
+            --arg file "$file" \
+            --arg status "$status" \
+            --arg method "basic" \
+            --argjson errors "[$errors_json]" \
+            --argjson warnings "[$warnings_json]" \
+            '{
+                file: $file,
+                status: $status,
+                method: $method,
+                errors: $errors,
+                warnings: $warnings,
+                timestamp: now
+            }'
+    else
+        echo "$status"
+    fi
+
+    [[ "$status" == "valid" ]] && return 0 || return 1
+}
+
+# Process single file
+process_file() {
+    local file="$1"
+    local format="$2"
+    local mode="$3"
+    local schema="$4"
+
+    validate_file_path "$file" true 5  # 5MB limit for YAML validation
+
+    local json_output="false"
+    [[ "$format" == "json" || "$format" == "junit" ]] && json_output="true"
+
+    local result
+    local exit_code
+
+    # Choose validation method based on mode
+    if [[ "$mode" == "syntax-only" ]]; then
+        # Syntax-only mode: Skip DocuMind schema validation, use basic YAML syntax check only
+        log_debug "Using syntax-only mode - skipping DocuMind schema validation"
+        result=$(validate_yaml_basic "$file" "$json_output")
+        exit_code=$?
+    else
+        # Default/strict/schema-only modes: Try Node.js DocuMind validation first
+        local nodejs_result
+        local nodejs_exit_code
+
+        # Capture output and exit code from Node.js validator
+        nodejs_result=$(validate_yaml_nodejs "$file" "$mode" "$json_output" 2>/dev/null)
+        nodejs_exit_code=$?
+
+        # Handle different exit codes:
+        # 0 = Success (valid YAML that meets schema)
+        # 1 = System error (YAML parse error, missing dependencies, etc.) - fallback to basic
+        # 2 = Schema validation failed (valid YAML but doesn't meet DocuMind requirements) - use Node.js result
+        if [[ $nodejs_exit_code -eq 0 ]] || [[ $nodejs_exit_code -eq 2 ]]; then
+            # Node.js validator executed successfully (either valid or schema error)
+            result="$nodejs_result"
+            exit_code=$nodejs_exit_code
+            log_debug "Using Node.js validation result (exit code: $nodejs_exit_code)"
+        else
+            # Node.js validation had system error (exit code 1 or 3+), fallback to basic validation
+            log_debug "Node.js validation had system error (exit code: $nodejs_exit_code), using basic validation"
+            result=$(validate_yaml_basic "$file" "$json_output")
+            exit_code=$?
+        fi
+    fi
+
+    case "$format" in
+        text)
+            if [[ "$json_output" == "true" ]]; then
+                # Parse JSON result for text output
+                local status
+                status=$(echo "$result" | jq -r '.status // "unknown"')
+                local errors
+                errors=$(echo "$result" | jq -r '.errors[]? // empty' | tr '\n' '; ')
+                local warnings
+                warnings=$(echo "$result" | jq -r '.warnings[]? // empty' | tr '\n' '; ')
+
+                if [[ "$status" == "valid" ]]; then
+                    echo "✅ $file: Valid"
+                    [[ -n "$warnings" ]] && echo "   Warnings: $warnings"
+                else
+                    echo "❌ $file: Invalid"
+                    [[ -n "$errors" ]] && echo "   Errors: $errors"
+                    [[ -n "$warnings" ]] && echo "   Warnings: $warnings"
+                fi
+            else
+                # Direct result from basic validation
+                if [[ "$result" == "valid" ]]; then
+                    echo "✅ $file: Valid"
+                else
+                    echo "❌ $file: Invalid"
+                fi
+            fi
+            ;;
+        json)
+            echo "$result"
+            ;;
+        junit)
+            # Convert to JUnit XML format
+            local status
+            status=$(echo "$result" | jq -r '.status // "unknown"')
+            local errors
+            errors=$(echo "$result" | jq -r '.errors[]? // empty')
+
+            echo "  <testcase name=\"$(basename "$file")\" classname=\"yaml.validation\">"
+            if [[ "$status" != "valid" ]]; then
+                echo "    <failure message=\"YAML validation failed\">$errors</failure>"
+            fi
+            echo "  </testcase>"
+            ;;
+        summary)
+            if [[ "$json_output" == "true" ]]; then
+                echo "$result" | jq -r '.status // "unknown"'
+            else
+                echo "$result"
+            fi
+            ;;
+    esac
+
+    return $exit_code
+}
+
+# Process multiple files
+process_files() {
+    local format="$1"
+    local mode="$2"
+    local schema="$3"
+    local files=("${@:4}")
+    local total_files=0
+    local valid_files=0
+    local invalid_files=0
+    local last_exit_code=0
+
+    # JUnit XML header
+    if [[ "$format" == "junit" ]]; then
+        echo '<?xml version="1.0" encoding="UTF-8"?>'
+        echo '<testsuite name="YAML Validation" tests="'${#files[@]}'">'
+    fi
+
+    for file in "${files[@]}"; do
+        if [[ ! -f "$file" ]]; then
+            log_warning "File not found: $file"
+            continue
+        fi
+
+        local file_result
+        local file_exit_code
+        file_result=$(process_file "$file" "$format" "$mode" "$schema")
+        file_exit_code=$?
+
+        if [[ $file_exit_code -eq 0 ]]; then
+            valid_files=$((valid_files + 1))
+        else
+            invalid_files=$((invalid_files + 1))
+            # Track the last exit code for single file scenarios
+            last_exit_code=$file_exit_code
+        fi
+
+        # Output result for JSON format (captured above but not echoed)
+        if [[ "$format" == "json" ]]; then
+            echo "$file_result"
+        fi
+
+        total_files=$((total_files + 1))
+
+        # Show progress for many files
+        if [[ $total_files -gt 10 && "$format" == "text" ]]; then
+            show_progress $total_files ${#files[@]} "Validating YAML files"
+        fi
+    done
+
+    # JUnit XML footer
+    if [[ "$format" == "junit" ]]; then
+        echo '</testsuite>'
+    fi
+
+    # Show summary for multiple files
+    if [[ $total_files -gt 1 && "$format" == "text" ]]; then
+        echo
+        if [[ $invalid_files -eq 0 ]]; then
+            log_success "All $total_files YAML files are valid"
+        else
+            log_error "$invalid_files of $total_files YAML files are invalid"
+        fi
+    fi
+
+    # Return appropriate exit code
+    # For single file, preserve specific exit code (0=valid, 1=system error, 2=schema error)
+    # For multiple files, use simple pass/fail (0=all valid, 1=some invalid)
+    if [[ $total_files -eq 1 && $invalid_files -eq 1 ]]; then
+        # Single invalid file - preserve the specific exit code from validation
+        return $last_exit_code
+    else
+        # Multiple files or all valid - use simple pass/fail
+        [[ $invalid_files -eq 0 ]] && return 0 || return 1
+    fi
+}
+
+# Process files from stdin
+process_stdin() {
+    local format="$1"
+    local mode="$2"
+    local schema="$3"
+    local files=()
+
+    while IFS= read -r line; do
+        [[ -n "$line" ]] && files+=("$line")
+    done
+
+    if [[ ${#files[@]} -eq 0 ]]; then
+        log_warning "No files provided via stdin"
+        return 0
+    fi
+
+    process_files "$format" "$mode" "$schema" "${files[@]}"
+}
+
+# Find YAML files in directory
+find_yaml_files() {
+    local dir="$1"
+    find "$dir" -type f \( -name "*.yaml" -o -name "*.yml" \) 2>/dev/null | sort
+}
+
+# Main function
+main() {
+    # Use individual variables for bash 3.2 compatibility
+    local args_help="false"
+    local args_debug="false"
+    local args_quiet="false"
+    local args_format="$DEFAULT_FORMAT"
+    local args_mode="default"
+    local args_schema=""
+    local args_input=""
+    local args_files=""
+    local args_stdin="false"
+
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -h|--help)
+                args_help="true"
+                shift
+                ;;
+            -v|--verbose|--debug)
+                DOCUMIND_DEBUG=true
+                args_debug="true"
+                shift
+                ;;
+            -q|--quiet)
+                DOCUMIND_QUIET=true
+                args_quiet="true"
+                shift
+                ;;
+            --json)
+                args_format="json"
+                shift
+                ;;
+            --junit)
+                args_format="junit"
+                shift
+                ;;
+            --summary)
+                args_format="summary"
+                shift
+                ;;
+            --strict)
+                args_mode="strict"
+                shift
+                ;;
+            --syntax-only)
+                args_mode="syntax-only"
+                shift
+                ;;
+            --schema-only)
+                args_mode="schema-only"
+                shift
+                ;;
+            --schema=*)
+                args_schema="${1#*=}"
+                shift
+                ;;
+            --stdin)
+                args_stdin="true"
+                shift
+                ;;
+            -*)
+                die "Unknown option: $1"
+                ;;
+            *)
+                if [[ -z "$args_input" ]]; then
+                    args_input="$1"
+                else
+                    args_files+="$1 "
+                fi
+                shift
+                ;;
+        esac
+    done
+
+    # Handle help
+    if [[ "$args_help" == "true" ]]; then
+        show_yaml_validate_usage
+        exit 0
+    fi
+
+    # Initialize DocuMind paths
+    init_documind_paths
+
+    # Handle stdin input
+    if [[ "$args_stdin" == "true" || (! -t 0 && -z "$args_input" && -z "$args_files") ]]; then
+        process_stdin "$args_format" "$args_mode" "$args_schema"
+        exit $?
+    fi
+
+    # Determine input files
+    local files=()
+
+    if [[ -n "$args_input" ]]; then
+        files+=("$args_input")
+    fi
+
+    if [[ -n "$args_files" ]]; then
+        read -ra additional_files <<< "$args_files"
+        files+=("${additional_files[@]}")
+    fi
+
+    if [[ ${#files[@]} -eq 0 ]]; then
+        die "No input files specified. Use --help for usage information."
+    fi
+
+    # Expand directories and glob patterns
+    local expanded_files=()
+    for file in "${files[@]}"; do
+        if [[ -d "$file" ]]; then
+            # Add all YAML files in directory
+            while IFS= read -r found_file; do
+                expanded_files+=("$found_file")
+            done < <(find_yaml_files "$file")
+        elif [[ -f "$file" ]]; then
+            expanded_files+=("$file")
+        else
+            # Try glob expansion
+            for glob_file in $file; do
+                [[ -f "$glob_file" ]] && expanded_files+=("$glob_file")
+            done
+        fi
+    done
+
+    if [[ ${#expanded_files[@]} -eq 0 ]]; then
+        die "No YAML files found"
+    fi
+
+    # Process files
+    process_files "$args_format" "$args_mode" "$args_schema" "${expanded_files[@]}"
+}
+
+# Run main function if script is executed directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi

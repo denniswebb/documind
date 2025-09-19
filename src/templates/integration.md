@@ -1,12 +1,23 @@
 # {SERVICE_NAME} Integration
 
+<!-- AI_PRIORITY: HIGH - Service integration overview and purpose -->
+<!-- AI_FORMAT: bullet_points - Structure key information for AI scanning -->
+
 > **Template Instructions**: Replace `{SERVICE_NAME}` with the actual service name (e.g., Stripe, AWS S3, Redis). Fill in each section with integration-specific information.
 
 ## Overview
 
+<!-- AI_TRANSFORM: structured - Apply structured formatting for AI optimization -->
 Brief description of what {SERVICE_NAME} provides and how it's used in this project.
 
+**Service Purpose**: Define what {SERVICE_NAME} accomplishes in the system
+**Integration Type**: Describe the nature of the integration (API, SDK, webhook)
+**Dependencies**: List key dependencies and requirements
+
 ## Setup & Configuration
+
+<!-- AI_FORMAT: bullet_points - Configuration steps for AI reference -->
+<!-- AI_PRIORITY: HIGH - Setup information critical for implementation -->
 
 ### Prerequisites
 
@@ -15,6 +26,8 @@ Brief description of what {SERVICE_NAME} provides and how it's used in this proj
 - Minimum versions or requirements
 
 ### Installation
+
+<!-- AI_FORMAT: code_blocks - Installation commands for AI reference -->
 
 ```bash
 # Install required packages
@@ -25,6 +38,9 @@ yarn add service-package-name
 ```
 
 ### Configuration
+
+<!-- AI_FORMAT: code_blocks - Configuration examples for AI implementation -->
+<!-- AI_PRIORITY: MEDIUM - Configuration details important for setup -->
 
 #### Environment Variables
 
@@ -49,6 +65,9 @@ module.exports = {
 
 ## Integration Points
 
+<!-- AI_FORMAT: bullet_points - Integration points for AI understanding -->
+<!-- AI_PRIORITY: HIGH - Critical architecture information -->
+
 ### Where It's Used
 
 - **Component/Feature 1**: Description of how it's used here
@@ -56,6 +75,8 @@ module.exports = {
 - **Background Jobs**: Any async/background usage
 
 ### Data Flow
+
+<!-- AI_FORMAT: numbered_steps - Sequential process for AI comprehension -->
 
 ```
 Client Request → Application → {SERVICE_NAME} → Response → Client
@@ -69,6 +90,9 @@ Detailed explanation of how data flows through the integration:
 4. **Error Handling**: How errors are managed
 
 ## Code Examples
+
+<!-- AI_FORMAT: code_blocks - Code examples optimized for AI reference -->
+<!-- AI_PRIORITY: LOW - Examples can be compressed for token efficiency -->
 
 ### Basic Usage
 
@@ -160,6 +184,9 @@ class ServiceIntegration {
 - **Returns**: Description of return value
 
 ## Error Handling
+
+<!-- AI_FORMAT: table - Error reference table for AI troubleshooting -->
+<!-- AI_PRIORITY: MEDIUM - Error handling important for implementation -->
 
 ### Common Errors
 
@@ -266,6 +293,9 @@ logger.error('Service operation failed', {
 ```
 
 ## Troubleshooting
+
+<!-- AI_FORMAT: bullet_points - Troubleshooting guide for AI assistance -->
+<!-- AI_PRIORITY: MEDIUM - Problem resolution information valuable for AI support -->
 
 ### Common Issues
 

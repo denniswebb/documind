@@ -1,0 +1,73 @@
+{
+  "developer": [
+    "engineer",
+    "coder",
+    "programmer", 
+    "dev",
+    "software engineer",
+    "backend developer",
+    "frontend developer",
+    "full-stack developer",
+    "fullstack developer",
+    "web developer",
+    "mobile developer",
+    "application developer"
+  ],
+  "architect": [
+    "system architect",
+    "software architect",
+    "designer",
+    "systems designer", 
+    "technical architect",
+    "solution architect",
+    "enterprise architect",
+    "cloud architect",
+    "data architect"
+  ],
+  "security": [
+    "sec",
+    "security engineer",
+    "infosec",
+    "cybersecurity",
+    "security analyst",
+    "appsec",
+    "application security",
+    "information security",
+    "cyber security",
+    "security specialist",
+    "penetration tester",
+    "ethical hacker"
+  ],
+  "devops": [
+    "ops",
+    "platform engineer",
+    "infra",
+    "infrastructure",
+    "sre",
+    "site reliability engineer",
+    "platform",
+    "cloud engineer",
+    "infrastructure engineer",
+    "deployment engineer",
+    "release engineer",
+    "build engineer",
+    "automation engineer"
+  ],
+  "user": [
+    "product owner",
+    "business user",
+    "ux",
+    "user experience",
+    "product manager",
+    "business analyst",
+    "stakeholder",
+    "end user",
+    "customer",
+    "client",
+    "business stakeholder",
+    "product stakeholder",
+    "ui designer",
+    "ux designer",
+    "interaction designer"
+  ]
+}

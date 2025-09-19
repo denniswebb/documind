@@ -1,23 +1,26 @@
 # DocuMind 🧠
 
 [![Test Suite](https://github.com/denniswebb/documind/actions/workflows/test.yml/badge.svg)](https://github.com/denniswebb/documind/actions/workflows/test.yml)
+[![npm version](https://img.shields.io/npm/v/@dennis-webb/documind.svg)](https://www.npmjs.com/package/@dennis-webb/documind)
 [![Coverage](https://img.shields.io/badge/coverage-90%25-brightgreen)](./coverage/coverage-summary.html)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**IDE-Native Documentation System with AI-Powered Slash Commands**
+**IDE-Native Documentation System with Automatic Dual-Purpose Generation**
 
-DocuMind transforms how you document your projects by enabling documentation commands directly in your IDE through AI assistants. No external tools, no separate applications - just natural documentation commands that work where you code.
+DocuMind transforms how you document your projects by enabling documentation commands directly in your IDE through AI assistants. When you run `/document` commands, DocuMind automatically generates BOTH human-readable and AI-optimized documentation in one operation, providing comprehensive coverage without additional complexity.
 
 ## ✨ Features
 
 - **🎯 Slash Commands**: Use `/document bootstrap`, `/document expand [concept]`, etc.
-- **🗣️ Natural Language**: "Document the authentication system" → automatic documentation
+- **🤖 Dual-Purpose Generation**: Automatically creates both human and AI documentation
+- **🗣️ Natural Language**: "Document the authentication system" → comprehensive documentation
 - **🔌 IDE Native**: Works with GitHub Copilot, Claude, Cursor, Gemini CLI
 - **📦 Zero Install**: Clone repo → commands work instantly for everyone
 - **🔄 Version Controlled**: All configuration tracked in git
 - **🎨 Template System**: Consistent, professional documentation structure
 - **🔗 Smart Linking**: Automatic cross-references and navigation
+- **⚡ AI Orchestration**: Seamless coordination between human and AI documentation
 
 ## 🚀 Quick Start
 
@@ -45,14 +48,14 @@ After installation, try any of these with your AI assistant:
 
 ## 📋 Commands
 
-| Command | Description | Example |
-|---------|-------------|---------|
-| `/document bootstrap` | Generate complete documentation | Creates full `/docs` structure |
-| `/document expand [concept]` | Document specific concepts | `/document expand user-auth` |
-| `/document update [section]` | Refresh existing docs | `/document update api-guide` |
-| `/document analyze [integration]` | Document external services | `/document analyze redis` |
-| `/document index` | Rebuild navigation | Updates links and TOC |
-| `/document search [query]` | Find documentation | `/document search authentication` |
+| Command | Description | Output |
+|---------|-------------|--------|
+| `/document bootstrap` | Generate complete documentation | Human docs in `/docs/` + AI docs in `/docs/ai/` |
+| `/document expand [concept]` | Document specific concepts | Dual-purpose concept documentation |
+| `/document update [section]` | Refresh existing docs | Updated human + AI versions |
+| `/document analyze [integration]` | Document external services | Integration guides (both formats) |
+| `/document index` | Rebuild navigation | Updated navigation + AI index |
+| `/document search [query]` | Find documentation | Search both human and AI docs |
 
 ### Natural Language Support
 
@@ -65,27 +68,27 @@ DocuMind recognizes these patterns automatically:
 
 ## 🎯 Supported AI Tools
 
-DocuMind works with all major AI coding assistants:
+DocuMind works with all major AI coding assistants, automatically orchestrating dual-purpose documentation generation:
 
 ### GitHub Copilot
 - Reads `.github/copilot-instructions.md`
-- Slash commands available in chat
-- Context-aware suggestions
+- Automatically executes AI orchestrator for comprehensive generation
+- Presents both human and AI documentation results
 
 ### Claude (Anthropic)
-- Uses `CLAUDE.md` instructions
-- Natural language command recognition
-- Full documentation workflow support
+- Uses `CLAUDE.md` instructions for automatic dual-purpose generation
+- Natural language command recognition with orchestrator execution
+- Seamless presentation of comprehensive documentation results
 
 ### Cursor IDE
-- Integrates via `.cursor/rules/documind.mdc`
+- Integrates via `.cursor/rules/documind.mdc` with automatic orchestration
 - Also supports `.cursorrules` format
-- Smart context detection
+- Smart detection and dual-purpose generation
 
 ### Gemini CLI
-- Configured through `GEMINI.md`
-- Command pattern recognition
-- Structured documentation generation
+- Configured through `GEMINI.md` for comprehensive documentation
+- Command pattern recognition with automatic AI orchestration
+- Structured presentation of both documentation types
 
 ## 📁 Project Structure
 
@@ -111,7 +114,10 @@ your-project/
     ├── 01-getting-oriented/            # Project overview
     ├── 02-core-concepts/               # Key concepts
     ├── 03-integrations/                # External services
-    └── 04-development/                 # Developer guides
+    ├── 04-development/                 # Developer guides
+    └── ai/                             # AI-optimized documentation
+        ├── AI_README.md                # AI master index
+        └── *-ai.md                     # AI-optimized files
 ```
 
 ## 🎨 Documentation Templates
@@ -147,10 +153,85 @@ git clone repo && cd repo
 ## 🧠 How It Works
 
 1. **AI assistants read** the instruction files (CLAUDE.md, .cursorrules, etc.)
-2. **Commands are recognized** through natural language or slash syntax  
-3. **System instructions guide** the documentation generation process
-4. **Templates provide structure** for consistent, professional output
-5. **Navigation updates** automatically to maintain coherent structure
+2. **Commands are recognized** through natural language or slash syntax
+3. **DocuMind detection** automatically checks for installation and capabilities
+4. **AI orchestrator executes** to coordinate dual-purpose generation
+5. **Templates provide structure** for both human and AI documentation
+6. **Both documentation types** are generated simultaneously
+7. **Navigation updates** automatically for both human and AI indexes
+8. **Results presented** comprehensively showing both documentation types
+
+### Automatic Dual-Purpose Generation
+
+When you run `/document bootstrap`, DocuMind automatically:
+- 📚 Generates human-readable documentation in `/docs/`
+- 🤖 Creates AI-optimized documentation in `/docs/ai/`
+- 🔗 Updates navigation and cross-references for both
+- 📊 Tracks token counts and generation metrics
+- ✅ Presents comprehensive results to the user
+
+This happens transparently - users don't need to understand the dual-purpose nature.
+
+## 🤖 AI Integration Features
+
+### Automatic Detection and Orchestration
+
+DocuMind includes sophisticated AI integration capabilities:
+
+```mermaid
+graph LR
+    A[User: /document bootstrap] --> B[AI Agent]
+    B --> C[Detect DocuMind]
+    C --> D[Execute Orchestrator]
+    D --> E[Generate Human Docs]
+    D --> F[Generate AI Docs]
+    E --> G[Present Results]
+    F --> G
+```
+
+### Key Components
+
+- **AI Orchestrator** (`ai-orchestrator.js`): Coordinates dual-purpose generation
+- **Detection Utility** (`detect-documind.js`): Checks installation and capabilities
+- **Enhanced AI Configs**: Updated instructions for all major AI tools
+- **Workflow Automation**: Seamless execution without user intervention
+
+### Example AI Interaction
+
+When you ask Claude: "Document the authentication system"
+
+1. 🔍 **Detection**: Claude checks for DocuMind installation
+2. ⚡ **Execution**: Runs `ai-orchestrator.js expand authentication`
+3. 📚 **Generation**: Creates both human and AI documentation
+4. 📊 **Results**:
+   ```
+   ✅ Authentication documentation generated!
+
+   📚 Human Documentation:
+   - /docs/02-core-concepts/authentication.md
+
+   🤖 AI Documentation:
+   - /docs/ai/authentication-concept-ai.md (2,850 tokens)
+
+   Both versions now available and cross-linked.
+   ```
+
+### Supported Workflows
+
+| Workflow | Human Output | AI Output | Use Case |
+|----------|-------------|-----------|----------|
+| Bootstrap | Complete `/docs/` structure | Full `/docs/ai/` with token metrics | Project initialization |
+| Expand | Concept documentation | AI-optimized concept files | Feature documentation |
+| Analyze | Integration guides | Service-specific AI docs | External service docs |
+| Update | Refreshed human docs | Updated AI versions | Maintenance |
+| Search | Human doc matches | AI doc matches with context | Content discovery |
+
+### Fallback Behavior
+
+If DocuMind isn't installed, AI agents automatically:
+- Use their native documentation capabilities
+- Suggest DocuMind installation for enhanced features
+- Maintain full productivity without interruption
 
 ## 📦 Installation Options
 
@@ -177,8 +258,8 @@ DocuMind automatically detects your AI tools and generates appropriate configura
 
 ### Manual Configuration
 You can customize the system by editing:
-- Command definitions in `.documind/commands.md`
-- System behavior in `.documind/system.md`  
+- Command definitions in `.documind/core/commands.md`
+- System behavior in `.documind/core/system.md`  
 - Templates in `.documind/templates/`
 
 ## 🚀 Advanced Usage

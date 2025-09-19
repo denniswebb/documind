@@ -1,0 +1,236 @@
+# Specialist Role Definitions for DocuMind AI Documentation
+# Defines available specialists, their capabilities, and activation patterns
+
+specialists_version: "1.0"
+last_updated: "2024-01-01"
+
+# Available specialist roles
+specialists:
+  developer:
+    display_name: "Developer Specialist"
+    description: "Code analysis, implementation details, and technical documentation"
+    synonyms:
+      - "engineer"
+      - "coder"
+      - "programmer"
+      - "dev"
+      - "software engineer"
+      - "backend developer"
+      - "frontend developer"
+      - "full-stack developer"
+    
+    capabilities:
+      - "code_analysis"
+      - "api_documentation"
+      - "implementation_patterns"
+      - "debugging_guides"
+      - "code_examples"
+      - "technical_specifications"
+    
+    default_activation_cost: 500
+    recommended_invocation_phrases:
+      - "analyze the code"
+      - "document the implementation"
+      - "explain how this works"
+      - "create code examples"
+    
+    priority_order: 2
+    default_token_budget: 3000
+    
+    activation_triggers:
+      keywords: ["code", "implementation", "function", "method", "class", "api"]
+      file_patterns: ["*.js", "*.ts", "*.py", "*.java", "*.go", "*.rs"]
+      manifest_conditions: ["code_analysis_required", "contains_code_examples"]
+
+  architect:
+    display_name: "System Architect"
+    description: "System design, architecture patterns, and high-level documentation"
+    synonyms:
+      - "system architect"
+      - "software architect"
+      - "designer"
+      - "systems designer"
+      - "technical architect"
+      - "solution architect"
+    
+    capabilities:
+      - "system_design"
+      - "architecture_patterns"
+      - "component_relationships"
+      - "design_decisions"
+      - "scalability_analysis"
+      - "technology_selection"
+    
+    default_activation_cost: 800
+    recommended_invocation_phrases:
+      - "design the system"
+      - "explain the architecture"
+      - "document system components"
+      - "analyze the design"
+    
+    priority_order: 1
+    default_token_budget: 5000
+    
+    activation_triggers:
+      keywords: ["architecture", "design", "system", "component", "pattern", "structure"]
+      file_patterns: ["docker-compose.yml", "Dockerfile", "*.config.js", "architecture.md"]
+      manifest_conditions: ["system_design_context", "architectural_implications"]
+
+  security:
+    display_name: "Security Specialist"
+    description: "Security analysis, vulnerability assessment, and compliance documentation"
+    synonyms:
+      - "sec"
+      - "security engineer"
+      - "infosec"
+      - "cybersecurity"
+      - "security analyst"
+      - "appsec"
+    
+    capabilities:
+      - "security_analysis"
+      - "vulnerability_assessment"
+      - "compliance_documentation"
+      - "threat_modeling"
+      - "security_patterns"
+      - "authentication_flows"
+    
+    default_activation_cost: 600
+    recommended_invocation_phrases:
+      - "analyze security"
+      - "document authentication"
+      - "review security patterns"
+      - "assess vulnerabilities"
+    
+    priority_order: 3
+    default_token_budget: 2500
+    
+    activation_triggers:
+      keywords: ["security", "auth", "authentication", "authorization", "crypto", "jwt", "oauth", "ssl", "tls"]
+      file_patterns: ["*.pem", "*.key", ".env*", "auth*", "security*"]
+      manifest_conditions: ["security_review_needed", "contains_credentials_or_auth"]
+
+  devops:
+    display_name: "DevOps Specialist"
+    description: "Infrastructure, deployment, monitoring, and operational documentation"
+    synonyms:
+      - "ops"
+      - "platform engineer"
+      - "infra"
+      - "infrastructure"
+      - "sre"
+      - "site reliability engineer"
+      - "platform"
+      - "cloud engineer"
+    
+    capabilities:
+      - "infrastructure_analysis"
+      - "deployment_documentation"
+      - "monitoring_setup"
+      - "ci_cd_pipelines"
+      - "cloud_architecture"
+      - "operational_procedures"
+    
+    default_activation_cost: 700
+    recommended_invocation_phrases:
+      - "document deployment"
+      - "explain infrastructure"
+      - "analyze monitoring"
+      - "document operations"
+    
+    priority_order: 4
+    default_token_budget: 3500
+    
+    activation_triggers:
+      keywords: ["deploy", "infrastructure", "docker", "kubernetes", "aws", "gcp", "azure", "monitoring", "ci", "cd"]
+      file_patterns: ["Dockerfile", "docker-compose.yml", "*.yml", "*.yaml", ".github/workflows/*", "terraform/*"]
+      manifest_conditions: ["deployment_config_found", "infrastructure_references"]
+
+  user:
+    display_name: "User Experience Specialist"
+    description: "User-facing features, business requirements, and user journey documentation"
+    synonyms:
+      - "product owner"
+      - "business user"
+      - "ux"
+      - "user experience"
+      - "product manager"
+      - "business analyst"
+      - "stakeholder"
+      - "end user"
+    
+    capabilities:
+      - "user_journey_mapping"
+      - "feature_documentation"
+      - "business_requirements"
+      - "user_interface_analysis"
+      - "workflow_documentation"
+      - "acceptance_criteria"
+    
+    default_activation_cost: 400
+    recommended_invocation_phrases:
+      - "document user features"
+      - "explain user workflow"
+      - "analyze user experience"
+      - "document requirements"
+    
+    priority_order: 5
+    default_token_budget: 2000
+    
+    activation_triggers:
+      keywords: ["user", "ui", "ux", "interface", "workflow", "feature", "requirement", "business"]
+      file_patterns: ["*.html", "*.css", "*.vue", "*.jsx", "*.tsx", "requirements*", "features*"]
+      manifest_conditions: ["user_facing_features", "user_interaction_patterns"]
+
+# Global configuration
+global_settings:
+  max_concurrent_specialists: 3
+  lazy_activation_enabled: true
+  synonym_matching_enabled: true
+  case_insensitive_matching: true
+  
+  # Token budget distribution
+  total_budget_multiplier: 1.2  # Allow 20% overhead for coordination
+  coordination_overhead: 200    # Tokens reserved for specialist coordination
+  
+  # Activation thresholds
+  confidence_threshold: 0.7     # Minimum confidence for specialist activation
+  multi_specialist_threshold: 0.8  # Threshold for activating multiple specialists
+
+# Coordination patterns
+coordination:
+  sequential_activation:
+    description: "Activate specialists one after another"
+    order: ["architect", "developer", "security", "devops", "user"]
+    handoff_tokens: 100
+  
+  parallel_activation:
+    description: "Activate multiple specialists simultaneously"
+    max_parallel: 2
+    coordination_overhead: 300
+  
+  hierarchical_activation:
+    description: "Primary specialist coordinates with secondary specialists"
+    primary_roles: ["architect", "developer"]
+    secondary_roles: ["security", "devops", "user"]
+
+# Quality assurance
+quality_checks:
+  required_sections_coverage: 0.8  # 80% of required sections must be covered
+  token_budget_compliance: true
+  specialist_expertise_match: true
+  output_format_validation: true
+
+# Fallback behavior
+fallback:
+  no_specialists_matched:
+    action: "use_developer_specialist"
+    reason: "Developer specialist provides general technical documentation"
+  
+  all_specialists_over_budget:
+    action: "use_highest_priority"
+    reason: "Use highest priority specialist within budget"
+  
+  specialist_activation_failed:
+    action: "continue_with_available"
+    reason: "Continue with successfully activated specialists"

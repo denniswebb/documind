@@ -60,11 +60,11 @@ For help requests, search documentation first, then research codebase if needed.
 
 ## DocuMind System Instructions
 
-**For complete system instructions, see `.documind/system.md`**
+**For complete system instructions, see `.documind/core/system.md`**
 
 ## Available Commands Reference
 
-**For detailed command reference, see `.documind/commands.md`**
+**For detailed command reference, see `.documind/core/commands.md`**
 
 ## Smart Help System
 

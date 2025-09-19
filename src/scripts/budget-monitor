@@ -1,0 +1,608 @@
+#!/bin/bash
+
+# DocuMind Budget Monitor
+# Token budget monitoring utility for documentation files
+
+set -euo pipefail
+
+# Source utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/utils.sh"
+
+# Script metadata
+SCRIPT_NAME="budget-monitor"
+SCRIPT_VERSION="1.0.0"
+
+# Default configuration
+DEFAULT_BUDGET=4000
+DEFAULT_WATCH_INTERVAL=30
+DEFAULT_THRESHOLD=0.8  # Alert when 80% of budget is used
+
+# Usage information
+show_budget_usage() {
+    show_usage "$SCRIPT_NAME" \
+        "Monitor token budgets across documentation files" \
+        "$SCRIPT_NAME [OPTIONS] [DIRECTORY]" \
+        "  $SCRIPT_NAME docs/                       # Monitor docs directory
+  $SCRIPT_NAME --budget=500 --watch docs/      # Continuous monitoring
+  $SCRIPT_NAME --threshold=0.9 docs/           # Alert at 90% budget usage
+  $SCRIPT_NAME --manifest=manifest.yaml docs/  # Use custom manifest file
+  $SCRIPT_NAME --report --json docs/           # Generate JSON report
+  $SCRIPT_NAME --optimize docs/                # Suggest optimizations"
+
+    echo
+    echo -e "$(get_color neon_cyan)MONITORING MODES:$(get_color reset)"
+    echo "  single       One-time budget analysis (default)"
+    echo "  watch        Continuous monitoring with periodic updates"
+    echo "  report       Generate detailed budget report"
+    echo "  optimize     Analyze files and suggest optimizations"
+    echo "  alert        Check budgets and exit with status code"
+    echo
+    echo -e "$(get_color neon_cyan)OUTPUT FORMATS:$(get_color reset)"
+    echo "  text         Human-readable text output (default)"
+    echo "  json         JSON format for programmatic use"
+    echo "  csv          CSV format for spreadsheet import"
+    echo "  prometheus   Prometheus metrics format"
+    echo
+    echo -e "$(get_color neon_cyan)BUDGET SOURCES:$(get_color reset)"
+    echo "  --budget=N           Fixed budget for all files"
+    echo "  --manifest=FILE      Read budgets from YAML manifest"
+    echo "  --auto               Auto-detect budgets from file structure"
+}
+
+# Parse manifest file for budget information
+parse_manifest() {
+    local manifest_file="$1"
+
+    if [[ ! -f "$manifest_file" ]]; then
+        log_warning "Manifest file not found: $manifest_file"
+        return 1
+    fi
+
+    if command -v "$SCRIPT_DIR/validate-yaml" >/dev/null; then
+        if ! "$SCRIPT_DIR/validate-yaml" "$manifest_file" --summary >/dev/null; then
+            log_error "Invalid manifest file: $manifest_file"
+            return 1
+        fi
+    fi
+
+    log_debug "Parsed manifest: $manifest_file"
+    return 0
+}
+
+# Get budget for specific file
+get_file_budget() {
+    local file="$1"
+    local default_budget="$2"
+    local manifest="${3:-}"
+
+    # If manifest specified, try to read budget from it
+    if [[ -n "$manifest" && -f "$manifest" ]]; then
+        # This would parse YAML manifest for file-specific budgets
+        # For now, use default budget
+        echo "$default_budget"
+        return
+    fi
+
+    # Auto-detect budget based on file type/location
+    local file_budget="$default_budget"
+
+    case "$(basename "$file")" in
+        README.md)
+            file_budget=$((default_budget * 2))  # READMEs can be longer
+            ;;
+        getting-started.md|tutorial.md)
+            file_budget=$((default_budget * 3))  # Tutorials can be comprehensive
+            ;;
+        api-reference.md|reference.md)
+            file_budget=$((default_budget * 4))  # API docs can be extensive
+            ;;
+    esac
+
+    # Adjust based on directory
+    case "$(dirname "$file")" in
+        */api/*)
+            file_budget=$((file_budget * 2))  # API docs generally longer
+            ;;
+        */guides/*)
+            file_budget=$((file_budget * 2))  # Guides can be detailed
+            ;;
+        */concepts/*)
+            file_budget=$((file_budget + 1000))  # Concepts need some extra space
+            ;;
+    esac
+
+    echo "$file_budget"
+}
+
+# Analyze single file
+analyze_file() {
+    local file="$1"
+    local default_budget="$2"
+    local manifest="${3:-}"
+
+    validate_file_path "$file" true 10  # 10MB limit for budget monitoring
+
+    local file_budget
+    file_budget=$(get_file_budget "$file" "$default_budget" "$manifest")
+
+    local token_count=0
+    local word_count=0
+    local char_count=0
+    local method="unknown"
+
+    # Get token count using token-count utility
+    if command -v "$SCRIPT_DIR/token-count" >/dev/null; then
+        local token_result
+        if token_result=$(cat "$file" | "$SCRIPT_DIR/token-count" --json 2>/dev/null); then
+            if is_valid_json "$token_result"; then
+                token_count=$(safe_jq "$token_result" '.tokens // 0' "0")
+                word_count=$(safe_jq "$token_result" '.words // 0' "0")
+                char_count=$(safe_jq "$token_result" '.characters // 0' "0")
+                method=$(safe_jq "$token_result" '.method // "unknown"' "unknown")
+            fi
+        fi
+    fi
+
+    # Fallback to basic counting
+    if [[ $token_count -eq 0 ]]; then
+        word_count=$(wc -w < "$file" 2>/dev/null || echo "0")
+        char_count=$(wc -c < "$file" 2>/dev/null || echo "0")
+        token_count=$((word_count * 3 / 4))  # Rough estimation
+        method="fallback"
+    fi
+
+    local usage_percentage=0
+    if [[ $file_budget -gt 0 ]]; then
+        usage_percentage=$((token_count * 100 / file_budget))
+    fi
+
+    local status="ok"
+    if [[ $token_count -gt $file_budget ]]; then
+        status="over_budget"
+    elif [[ $usage_percentage -gt 80 ]]; then
+        status="warning"
+    fi
+
+    # Output analysis result
+    jq -n \
+        --arg file "$file" \
+        --argjson tokens "$token_count" \
+        --argjson words "$word_count" \
+        --argjson characters "$char_count" \
+        --argjson budget "$file_budget" \
+        --argjson usage_percentage "$usage_percentage" \
+        --arg status "$status" \
+        --arg method "$method" \
+        '{
+            file: $file,
+            tokens: $tokens,
+            words: $words,
+            characters: $characters,
+            budget: $budget,
+            usage_percentage: $usage_percentage,
+            status: $status,
+            method: $method,
+            timestamp: now
+        }'
+}
+
+# Monitor directory for budget compliance
+monitor_directory() {
+    local dir="$1"
+    local budget="$2"
+    local manifest="$3"
+    local threshold="$4"
+
+    if [[ ! -d "$dir" ]]; then
+        die "Directory not found: $dir"
+    fi
+
+    local files=()
+    while IFS= read -r -d '' file; do
+        files+=("$file")
+    done < <(find "$dir" -name "*.md" -type f -print0 2>/dev/null)
+
+    if [[ ${#files[@]} -eq 0 ]]; then
+        log_warning "No markdown files found in: $dir"
+        return 0
+    fi
+
+    log_debug "Monitoring ${#files[@]} files in $dir"
+
+    local results=()
+    local total_files=0
+    local over_budget_files=0
+    local warning_files=0
+    local total_tokens=0
+    local total_budget=0
+
+    # Analyze each file
+    for file in "${files[@]}"; do
+        local result
+        result=$(analyze_file "$file" "$budget" "$manifest")
+        results+=("$result")
+
+        local tokens status file_budget
+        tokens=$(safe_jq "$result" '.tokens' "0")
+        status=$(safe_jq "$result" '.status' "unknown")
+        file_budget=$(safe_jq "$result" '.budget' "0")
+
+        total_files=$((total_files + 1))
+        total_tokens=$((total_tokens + tokens))
+        total_budget=$((total_budget + file_budget))
+
+        case "$status" in
+            over_budget)
+                over_budget_files=$((over_budget_files + 1))
+                ;;
+            warning)
+                warning_files=$((warning_files + 1))
+                ;;
+        esac
+
+        # Show progress for many files
+        if [[ $total_files -gt 10 ]]; then
+            show_progress $total_files ${#files[@]} "Analyzing files"
+        fi
+    done
+
+    # Generate summary
+    local summary
+    summary=$(jq -n \
+        --argjson total_files "$total_files" \
+        --argjson over_budget_files "$over_budget_files" \
+        --argjson warning_files "$warning_files" \
+        --argjson total_tokens "$total_tokens" \
+        --argjson total_budget "$total_budget" \
+        --arg directory "$dir" \
+        '{
+            directory: $directory,
+            total_files: $total_files,
+            over_budget_files: $over_budget_files,
+            warning_files: $warning_files,
+            ok_files: ($total_files - $over_budget_files - $warning_files),
+            total_tokens: $total_tokens,
+            total_budget: $total_budget,
+            overall_usage_percentage: (if $total_budget > 0 then ($total_tokens * 100 / $total_budget) else 0 end),
+            timestamp: now
+        }')
+
+    # Return results and summary
+    jq -n \
+        --argjson results "$(printf '%s\n' "${results[@]}" | jq -s '.')" \
+        --argjson summary "$summary" \
+        '{
+            results: $results,
+            summary: $summary
+        }'
+}
+
+# Format output according to specified format
+format_output() {
+    local data="$1"
+    local format="$2"
+
+    case "$format" in
+        json)
+            echo "$data" | jq .
+            ;;
+        csv)
+            format_csv_output "$data"
+            ;;
+        prometheus)
+            format_prometheus_output "$data"
+            ;;
+        text|*)
+            format_text_output "$data"
+            ;;
+    esac
+}
+
+# Format text output
+format_text_output() {
+    local data="$1"
+
+    local summary
+    summary=$(echo "$data" | jq -r '.summary')
+
+    local directory total_files over_budget_files warning_files ok_files
+    directory=$(echo "$summary" | jq -r '.directory')
+    total_files=$(echo "$summary" | jq -r '.total_files')
+    over_budget_files=$(echo "$summary" | jq -r '.over_budget_files')
+    warning_files=$(echo "$summary" | jq -r '.warning_files')
+    ok_files=$(echo "$summary" | jq -r '.ok_files')
+
+    log_header "📊 Budget Monitor Report - $directory"
+    echo
+
+    log_subheader "📈 Summary"
+    echo "  Total files: $total_files"
+    echo "  ✅ Within budget: $ok_files"
+    echo "  ⚠️  Warning (high usage): $warning_files"
+    echo "  ❌ Over budget: $over_budget_files"
+    echo
+
+    # Show files by status
+    if [[ $over_budget_files -gt 0 ]]; then
+        log_subheader "❌ Files Over Budget"
+        echo "$data" | jq -r '.results[] | select(.status == "over_budget") | "  \(.file): \(.tokens) tokens (\(.usage_percentage)% of \(.budget))"'
+        echo
+    fi
+
+    if [[ $warning_files -gt 0 ]]; then
+        log_subheader "⚠️  Files Near Budget Limit"
+        echo "$data" | jq -r '.results[] | select(.status == "warning") | "  \(.file): \(.tokens) tokens (\(.usage_percentage)% of \(.budget))"'
+        echo
+    fi
+
+    # Show largest files
+    log_subheader "📋 Largest Files (by token count)"
+    echo "$data" | jq -r '.results | sort_by(.tokens) | reverse | .[0:5][] | "  \(.file): \(.tokens) tokens"'
+}
+
+# Format CSV output
+format_csv_output() {
+    local data="$1"
+
+    echo "file,tokens,words,characters,budget,usage_percentage,status,method"
+    echo "$data" | jq -r '.results[] | "\(.file),\(.tokens),\(.words),\(.characters),\(.budget),\(.usage_percentage),\(.status),\(.method)"'
+}
+
+# Format Prometheus metrics output
+format_prometheus_output() {
+    local data="$1"
+
+    echo "# HELP documind_file_tokens Token count for documentation files"
+    echo "# TYPE documind_file_tokens gauge"
+
+    echo "$data" | jq -r '.results[] | "documind_file_tokens{file=\"\(.file)\",status=\"\(.status)\"} \(.tokens)"'
+
+    echo "# HELP documind_file_budget_usage Budget usage percentage for documentation files"
+    echo "# TYPE documind_file_budget_usage gauge"
+
+    echo "$data" | jq -r '.results[] | "documind_file_budget_usage{file=\"\(.file)\"} \(.usage_percentage / 100)"'
+
+    local summary
+    summary=$(echo "$data" | jq -r '.summary')
+
+    echo "# HELP documind_total_files Total number of documentation files"
+    echo "# TYPE documind_total_files gauge"
+    echo "documind_total_files $(echo "$summary" | jq -r '.total_files')"
+
+    echo "# HELP documind_over_budget_files Number of files over budget"
+    echo "# TYPE documind_over_budget_files gauge"
+    echo "documind_over_budget_files $(echo "$summary" | jq -r '.over_budget_files')"
+}
+
+# Watch mode for continuous monitoring
+watch_mode() {
+    local dir="$1"
+    local interval="$2"
+    local format="$3"
+    local budget="$4"
+    local manifest="$5"
+    local threshold="$6"
+
+    log_info "Starting watch mode (interval: ${interval}s)"
+    log_info "Press Ctrl+C to stop"
+
+    while true; do
+        clear
+        echo -e "$(get_color neon_cyan)$(date): Monitoring $dir$(get_color reset)"
+        echo
+
+        local result
+        result=$(monitor_directory "$dir" "$budget" "$manifest" "$threshold")
+
+        format_output "$result" "$format"
+
+        echo
+        echo "Next update in ${interval}s..."
+        sleep "$interval"
+    done
+}
+
+# Generate optimization suggestions
+suggest_optimizations() {
+    local data="$1"
+
+    log_header "🔧 Optimization Suggestions"
+    echo
+
+    # Files that could benefit from splitting
+    local large_files
+    large_files=$(echo "$data" | jq -r '.results[] | select(.usage_percentage > 80) | .file')
+
+    if [[ -n "$large_files" ]]; then
+        log_subheader "📄 Files that could benefit from splitting:"
+        while IFS= read -r file; do
+            [[ -n "$file" ]] && echo "  • $file - Consider splitting into multiple sections"
+        done <<< "$large_files"
+        echo
+    fi
+
+    # Files with very low usage
+    local underused_files
+    underused_files=$(echo "$data" | jq -r '.results[] | select(.usage_percentage < 20 and .tokens > 100) | .file')
+
+    if [[ -n "$underused_files" ]]; then
+        log_subheader "📝 Files with room for expansion:"
+        while IFS= read -r file; do
+            [[ -n "$file" ]] && echo "  • $file - Could include more detail or examples"
+        done <<< "$underused_files"
+        echo
+    fi
+
+    # Suggest budget adjustments
+    local avg_usage
+    avg_usage=$(echo "$data" | jq -r '.summary.total_tokens / .summary.total_files')
+
+    log_subheader "📊 Budget Recommendations:"
+    echo "  • Average tokens per file: ${avg_usage%.*}"
+    echo "  • Consider adjusting default budget based on file types"
+    echo "  • Use manifest files for file-specific budgets"
+}
+
+# Main function
+main() {
+    # Individual variables for bash 3.2 compatibility
+    local help="false"
+    local debug="false"
+    local quiet="false"
+    local mode="single"
+    local format="text"
+    local budget="$DEFAULT_BUDGET"
+    local threshold="$DEFAULT_THRESHOLD"
+    local interval="$DEFAULT_WATCH_INTERVAL"
+    local manifest=""
+    local directory=""
+    local watch="false"
+    local report="false"
+    local optimize="false"
+    local alert="false"
+
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -h|--help)
+                help="true"
+                shift
+                ;;
+            -v|--verbose|--debug)
+                DOCUMIND_DEBUG=true
+                debug="true"
+                shift
+                ;;
+            -q|--quiet)
+                DOCUMIND_QUIET=true
+                quiet="true"
+                shift
+                ;;
+            --budget=*)
+                budget="${1#*=}"
+                shift
+                ;;
+            --threshold=*)
+                threshold="${1#*=}"
+                shift
+                ;;
+            --interval=*)
+                interval="${1#*=}"
+                shift
+                ;;
+            --manifest=*)
+                manifest="${1#*=}"
+                shift
+                ;;
+            --json)
+                format="json"
+                shift
+                ;;
+            --csv)
+                format="csv"
+                shift
+                ;;
+            --prometheus)
+                format="prometheus"
+                shift
+                ;;
+            --watch)
+                watch="true"
+                mode="watch"
+                shift
+                ;;
+            --report)
+                report="true"
+                mode="report"
+                shift
+                ;;
+            --optimize)
+                optimize="true"
+                mode="optimize"
+                shift
+                ;;
+            --alert)
+                alert="true"
+                mode="alert"
+                shift
+                ;;
+            -*)
+                die "Unknown option: $1"
+                ;;
+            *)
+                directory="$1"
+                shift
+                ;;
+        esac
+    done
+
+    # Handle help
+    if [[ "$help" == "true" ]]; then
+        show_budget_usage
+        exit 0
+    fi
+
+    # Initialize DocuMind paths
+    init_documind_paths
+
+    # Default to docs directory if not specified
+    if [[ -z "$directory" ]]; then
+        if [[ -d "docs" ]]; then
+            directory="docs"
+        elif [[ -d "$DOCUMIND_ROOT_DIR/docs" ]]; then
+            directory="$DOCUMIND_ROOT_DIR/docs"
+        else
+            die "No directory specified and no 'docs' directory found"
+        fi
+    fi
+
+    # Validate manifest if specified
+    if [[ -n "$manifest" ]]; then
+        parse_manifest "$manifest" || die "Invalid manifest file"
+    fi
+
+    # Execute mode
+    case "$mode" in
+        single|report)
+            local result
+            result=$(monitor_directory "$directory" "$budget" "$manifest" "$threshold")
+            format_output "$result" "$format"
+
+            if [[ "$optimize" == "true" ]]; then
+                suggest_optimizations "$result"
+            fi
+            ;;
+        watch)
+            watch_mode "$directory" "$interval" "$format" "$budget" "$manifest" "$threshold"
+            ;;
+        alert)
+            local result
+            result=$(monitor_directory "$directory" "$budget" "$manifest" "$threshold")
+
+            local over_budget_files
+            over_budget_files=$(echo "$result" | jq -r '.summary.over_budget_files')
+
+            if [[ $over_budget_files -gt 0 ]]; then
+                log_error "$over_budget_files files are over budget"
+                exit 1
+            else
+                log_success "All files are within budget"
+                exit 0
+            fi
+            ;;
+        optimize)
+            local result
+            result=$(monitor_directory "$directory" "$budget" "$manifest" "$threshold")
+            suggest_optimizations "$result"
+            ;;
+        *)
+            die "Unknown mode: $mode"
+            ;;
+    esac
+}
+
+# Run main function if script is executed directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi

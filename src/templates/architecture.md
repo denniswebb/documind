@@ -1,16 +1,27 @@
 # {SYSTEM_NAME} Architecture
 
+<!-- AI_PRIORITY: HIGH - System architecture overview and core design -->
+<!-- AI_FORMAT: bullet_points - Structure architecture info for AI comprehension -->
+
 > **Template Instructions**: Replace `{SYSTEM_NAME}` with the actual system/component name. Fill in each section with architecture-specific information.
 
 ## Overview
 
+<!-- AI_TRANSFORM: structured - Apply structured formatting for AI optimization -->
 High-level description of the system architecture, its purpose, and key design decisions.
+
+**System Purpose**: Define the primary function and goals of {SYSTEM_NAME}
+**Architecture Style**: Describe the overall architectural pattern (microservices, monolith, etc.)
+**Key Design Principles**: List core principles guiding the design
 
 ## System Context
 
+<!-- AI_FORMAT: bullet_points - Context information for AI understanding -->
+<!-- AI_PRIORITY: HIGH - Critical system context and dependencies -->
+
 ### External Dependencies
 - **Service 1**: How it's used and why
-- **Service 2**: How it's used and why  
+- **Service 2**: How it's used and why
 - **Database**: Type and usage patterns
 - **Message Queues**: If applicable
 
@@ -35,28 +46,34 @@ graph TD
 
 ## Core Components
 
-### Component 1: {Component Name}
+<!-- AI_FORMAT: bullet_points - Component structure for AI analysis -->
+<!-- AI_PRIORITY: HIGH - Essential component information -->
+
+### Component 1: {COMPONENT_NAME}
 - **Purpose**: What this component does
 - **Responsibilities**: Key responsibilities
 - **Technology**: Language/framework used
 - **Scaling**: How it scales
 - **Dependencies**: What it depends on
 
-### Component 2: {Component Name}  
+### Component 2: {COMPONENT_NAME}
 - **Purpose**: What this component does
 - **Responsibilities**: Key responsibilities
 - **Technology**: Language/framework used
 - **Scaling**: How it scales
 - **Dependencies**: What it depends on
 
-### Component 3: {Component Name}
+### Component 3: {COMPONENT_NAME}
 - **Purpose**: What this component does
-- **Responsibilities**: Key responsibilities  
+- **Responsibilities**: Key responsibilities
 - **Technology**: Language/framework used
 - **Scaling**: How it scales
 - **Dependencies**: What it depends on
 
 ## Data Architecture
+
+<!-- AI_FORMAT: numbered_steps - Data flow for AI understanding -->
+<!-- AI_PRIORITY: MEDIUM - Data architecture important for implementation -->
 
 ### Data Flow
 
@@ -88,6 +105,9 @@ Detailed explanation of how data moves through the system:
 
 ### Data Models
 
+<!-- AI_FORMAT: code_blocks - Data models for AI reference -->
+<!-- AI_PRIORITY: MEDIUM - Data structure important for implementation -->
+
 #### Core Entities
 
 ```javascript
@@ -118,6 +138,9 @@ Detailed explanation of how data moves through the system:
 
 ## API Architecture
 
+<!-- AI_FORMAT: bullet_points - API design principles for AI reference -->
+<!-- AI_PRIORITY: MEDIUM - API architecture important for integration -->
+
 ### API Design Principles
 - RESTful design patterns
 - Consistent error handling
@@ -140,6 +163,9 @@ DELETE /api/v1/resources/:id    # Delete resource
 - **Session Management**: How sessions are handled
 
 ## Security Architecture
+
+<!-- AI_FORMAT: numbered_steps - Security layers for AI understanding -->
+<!-- AI_PRIORITY: HIGH - Security architecture critical for implementation -->
 
 ### Security Layers
 1. **Network Security**: Firewalls, VPNs, load balancers
@@ -245,15 +271,18 @@ Code Commit → Build → Test → Deploy to Staging → Deploy to Production
 
 ## Design Decisions & Trade-offs
 
-### Decision 1: {Technology/Pattern Choice}
+<!-- AI_FORMAT: bullet_points - Design decisions for AI analysis -->
+<!-- AI_PRIORITY: MEDIUM - Decision rationale important for understanding -->
+
+### Decision 1: {TECHNOLOGY_CHOICE}
 - **Decision**: What was chosen
 - **Alternatives Considered**: Other options evaluated
 - **Reasoning**: Why this choice was made
 - **Trade-offs**: What was gained/lost
 
-### Decision 2: {Architecture Pattern}
+### Decision 2: {ARCHITECTURE_PATTERN}
 - **Decision**: What was chosen
-- **Alternatives Considered**: Other options evaluated  
+- **Alternatives Considered**: Other options evaluated
 - **Reasoning**: Why this choice was made
 - **Trade-offs**: What was gained/lost
 

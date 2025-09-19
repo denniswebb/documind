@@ -18,32 +18,35 @@ class CoverageValidator {
 
   async validateCoverage() {
     console.log('🔍 Validating code coverage...');
-    
+
     try {
       // Generate coverage report
       await this.generateCoverageReport();
-      
+
       // Parse coverage data
       const coverage = await this.parseCoverageData();
-      
+
+      // Validate dual-purpose generation functionality
+      await this.validateDualPurposeGeneration();
+
       // Validate coverage thresholds
       const validationResults = this.validateThresholds(coverage);
-      
+
       // Generate coverage reports
       await this.generateReports(coverage);
-      
+
       // Display results
       this.displayResults(validationResults);
-      
+
       // Exit with appropriate code
       const passed = validationResults.every(result => result.passed);
       if (!passed) {
         console.error('❌ Coverage validation failed');
         process.exit(1);
       }
-      
+
       console.log('✅ Coverage validation passed');
-      
+
     } catch (error) {
       console.error('❌ Coverage validation error:', error.message);
       process.exit(1);
@@ -220,7 +223,7 @@ class CoverageValidator {
   async countSourceFiles() {
     try {
       let count = 0;
-      
+
       // Check for install.js
       try {
         await fs.access(path.join(this.repoRoot, 'install.js'));
@@ -228,7 +231,7 @@ class CoverageValidator {
       } catch (error) {
         // File doesn't exist
       }
-      
+
       // Check for src/scripts directory
       const srcScriptsDir = path.join(this.repoRoot, 'src', 'scripts');
       try {
@@ -237,7 +240,25 @@ class CoverageValidator {
       } catch (error) {
         // Directory doesn't exist
       }
-      
+
+      // Check for src/core directory (dual-purpose generator files)
+      const srcCoreDir = path.join(this.repoRoot, 'src', 'core');
+      try {
+        const files = await fs.readdir(srcCoreDir);
+        count += files.filter(file => file.endsWith('.js')).length;
+      } catch (error) {
+        // Directory doesn't exist
+      }
+
+      // Check for src/cli directory
+      const srcCliDir = path.join(this.repoRoot, 'src', 'cli');
+      try {
+        const files = await fs.readdir(srcCliDir);
+        count += files.filter(file => file.endsWith('.js')).length;
+      } catch (error) {
+        // Directory doesn't exist
+      }
+
       return Math.max(count, 1); // At least install.js should exist
     } catch (error) {
       return 1;
@@ -356,6 +377,94 @@ class CoverageValidator {
       message: `${total.toFixed(1)}%`,
       color
     };
+  }
+
+  async validateDualPurposeGeneration() {
+    console.log('  🤖 Validating dual-purpose generation system...');
+
+    try {
+      // Check if core generator files exist
+      const coreFiles = [
+        path.join(this.repoRoot, 'src', 'core', 'generator.js'),
+        path.join(this.repoRoot, 'src', 'core', 'template-processor.js'),
+        path.join(this.repoRoot, 'src', 'core', 'ai-index-builder.js'),
+        path.join(this.repoRoot, 'src', 'cli', 'documind.js')
+      ];
+
+      for (const file of coreFiles) {
+        try {
+          await fs.access(file);
+          console.log(`    ✓ Found ${path.basename(file)}`);
+        } catch (error) {
+          throw new Error(`Missing dual-purpose generator file: ${path.basename(file)}`);
+        }
+      }
+
+      // Check if AI manifests exist
+      const manifestDir = path.join(this.repoRoot, 'src', 'templates', 'ai-optimized');
+      try {
+        const manifestFiles = await fs.readdir(manifestDir);
+        const yamlFiles = manifestFiles.filter(file => file.endsWith('.yaml'));
+
+        if (yamlFiles.length === 0) {
+          throw new Error('No AI manifest files found in ai-optimized directory');
+        }
+
+        console.log(`    ✓ Found ${yamlFiles.length} AI manifest files`);
+      } catch (error) {
+        throw new Error(`Failed to validate AI manifests: ${error.message}`);
+      }
+
+      // Check if enhanced templates exist with AI comments
+      const templateFiles = [
+        path.join(this.repoRoot, 'src', 'templates', 'concept.md'),
+        path.join(this.repoRoot, 'src', 'templates', 'integration.md'),
+        path.join(this.repoRoot, 'src', 'templates', 'architecture.md')
+      ];
+
+      for (const templateFile of templateFiles) {
+        try {
+          const content = await fs.readFile(templateFile, 'utf8');
+
+          // Check for AI optimization comments
+          if (!content.includes('AI_PRIORITY') || !content.includes('AI_FORMAT')) {
+            console.log(`    ⚠️  Template ${path.basename(templateFile)} missing AI optimization comments`);
+          } else {
+            console.log(`    ✓ Template ${path.basename(templateFile)} has AI optimization`);
+          }
+        } catch (error) {
+          console.log(`    ⚠️  Could not validate template ${path.basename(templateFile)}`);
+        }
+      }
+
+      // Check if CLI binary is configured
+      const packageJsonPath = path.join(this.repoRoot, 'package.json');
+      try {
+        const packageContent = await fs.readFile(packageJsonPath, 'utf8');
+        const packageJson = JSON.parse(packageContent);
+
+        if (packageJson.bin && packageJson.bin['documind-generate']) {
+          console.log('    ✓ CLI binary entry configured');
+        } else {
+          throw new Error('CLI binary entry not found in package.json');
+        }
+      } catch (error) {
+        throw new Error(`Failed to validate CLI configuration: ${error.message}`);
+      }
+
+      console.log('  ✅ Dual-purpose generation system validation passed');
+
+    } catch (error) {
+      throw new Error(`Dual-purpose generation validation failed: ${error.message}`);
+    }
+  }
+
+  async ensureDir(dirPath) {
+    try {
+      await fs.mkdir(dirPath, { recursive: true });
+    } catch (error) {
+      // Directory might already exist
+    }
   }
 
   displayResults(results) {

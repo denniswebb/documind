@@ -1,0 +1,562 @@
+#!/bin/bash
+
+# DocuMind Markdown Splitter
+# Intelligent markdown chunking with token budget management and mdsplit integration
+
+set -euo pipefail
+
+# Source utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/utils.sh"
+
+# Script metadata
+SCRIPT_NAME="split-markdown"
+SCRIPT_VERSION="1.0.0"
+
+# Default configuration
+DEFAULT_BUDGET=4000
+DEFAULT_STRATEGY="heading"
+DEFAULT_LEVEL=2
+DEFAULT_OUTPUT_DIR="split_output"
+
+# Usage information
+show_split_usage() {
+    show_usage "$SCRIPT_NAME" \
+        "Split markdown files intelligently with token budget management" \
+        "$SCRIPT_NAME [OPTIONS] FILE" \
+        "  $SCRIPT_NAME --budget=500 large-doc.md       # Split by token budget
+  $SCRIPT_NAME --strategy=heading doc.md        # Split by headings
+  $SCRIPT_NAME --level=3 --output=chunks/ README.md  # Split by H3 headings
+  $SCRIPT_NAME --merge chunks/ > merged.md      # Merge split files back
+  $SCRIPT_NAME --validate split_output/         # Validate chunk integrity"
+
+    echo
+    echo -e "$(get_color neon_cyan)SPLITTING STRATEGIES:$(get_color reset)"
+    echo "  heading      Split by heading levels (default)"
+    echo "  token        Split by token count limits"
+    echo "  size         Split by file size limits"
+    echo "  paragraph    Split by paragraph boundaries"
+    echo "  section      Split by logical sections"
+    echo "  custom       Split by custom delimiter patterns"
+    echo
+    echo -e "$(get_color neon_cyan)HEADING LEVELS:$(get_color reset)"
+    echo "  1            Split at H1 headings (#)"
+    echo "  2            Split at H2 headings (##) - default"
+    echo "  3            Split at H3 headings (###)"
+    echo "  4            Split at H4 headings (####)"
+    echo
+    echo -e "$(get_color neon_cyan)OUTPUT OPTIONS:$(get_color reset)"
+    echo "  --output=DIR        Output directory (default: split_output)"
+    echo "  --prefix=NAME       File prefix (default: based on input name)"
+    echo "  --index             Generate index file with navigation"
+    echo "  --preserve-links    Maintain internal links between chunks"
+    echo "  --merge             Merge split files back together"
+}
+
+# Check if mdsplit Node.js package is available
+check_mdsplit_package() {
+    if check_node_package "@scil/mdsplit-js"; then
+        log_debug "mdsplit-js package available"
+        return 0
+    fi
+
+    if command_exists node && node -e "require('@scil/mdsplit-js')" 2>/dev/null; then
+        log_debug "mdsplit-js available via require"
+        return 0
+    fi
+
+    log_debug "mdsplit-js package not available"
+    return 1
+}
+
+# Split markdown using mdsplit Node.js package
+split_with_mdsplit() {
+    local file="$1"
+    local output_dir="$2"
+    local strategy="$3"
+    local level="${4:-2}"
+
+    validate_file_path "$file" true 25  # 25MB limit for markdown splitting
+    safe_mkdir "$output_dir"
+
+    # Use mdsplit bridge script
+    local result
+    if result=$(run_node_script 'mdsplit_bridge.js' --file "$file" --output "$output_dir" --strategy "$strategy" --level "$level" 2>&1); then
+        log_debug "mdsplit completed successfully"
+        echo "$result"
+        return 0
+    else
+        log_debug "mdsplit failed: $result"
+        return 1
+    fi
+}
+
+# Split markdown by headings (fallback implementation)
+split_by_heading_fallback() {
+    local file="$1"
+    local output_dir="$2"
+    local level="${3:-2}"
+
+    validate_file_path "$file" true 25  # 25MB limit for markdown splitting
+    safe_mkdir "$output_dir"
+
+    local heading_pattern
+    case $level in
+        1) heading_pattern="^# " ;;
+        2) heading_pattern="^## " ;;
+        3) heading_pattern="^### " ;;
+        4) heading_pattern="^#### " ;;
+        *) die "Invalid heading level: $level" ;;
+    esac
+
+    local content
+    content=$(cat "$file")
+
+    local base_name
+    base_name=$(basename "$file" .md)
+
+    local chunk_num=1
+    local current_chunk=""
+    local current_title=""
+    local files_created=()
+
+    # Process line by line
+    while IFS= read -r line; do
+        if [[ "$line" =~ $heading_pattern ]]; then
+            # Save previous chunk if not empty
+            if [[ -n "$current_chunk" ]]; then
+                local filename="${base_name}_$(printf "%03d" $chunk_num).md"
+                local output_file="$output_dir/$filename"
+                echo "$current_chunk" > "$output_file"
+                files_created+=("$filename")
+                chunk_num=$((chunk_num + 1))
+            fi
+
+            # Start new chunk
+            current_chunk="$line"
+            current_title=$(echo "$line" | sed 's/^#* *//')
+        else
+            current_chunk+=$'\n'"$line"
+        fi
+    done <<< "$content"
+
+    # Save final chunk
+    if [[ -n "$current_chunk" ]]; then
+        local filename="${base_name}_$(printf "%03d" $chunk_num).md"
+        local output_file="$output_dir/$filename"
+        echo "$current_chunk" > "$output_file"
+        files_created+=("$filename")
+    fi
+
+    # Return JSON result
+    jq -n \
+        --arg success "true" \
+        --argjson chunks "${#files_created[@]}" \
+        --arg output_dir "$output_dir" \
+        --argjson files "$(printf '"%s",' "${files_created[@]}" | sed 's/,$//' | sed 's/^/[/' | sed 's/$/]/')" \
+        '{
+            success: ($success | test("true")),
+            chunks: $chunks,
+            outputDir: $output_dir,
+            files: $files,
+            method: "fallback"
+        }'
+}
+
+# Split by token budget
+split_by_token_budget() {
+    local file="$1"
+    local output_dir="$2"
+    local budget="$3"
+
+    validate_file_path "$file" true 25  # 25MB limit for markdown splitting
+    safe_mkdir "$output_dir"
+
+    local content
+    content=$(cat "$file")
+
+    local base_name
+    base_name=$(basename "$file" .md)
+
+    local chunk_num=1
+    local current_chunk=""
+    local files_created=()
+
+    # Split content into paragraphs using awk (proper paragraph separator handling)
+    local paragraphs=()
+    while IFS= read -r paragraph; do
+        [[ -n "$paragraph" ]] && paragraphs+=("$paragraph")
+    done < <(awk 'BEGIN{RS=""} {print}' <<< "$content")
+
+    # Build chunks within token budget
+    for paragraph in "${paragraphs[@]}"; do
+        local test_chunk="$current_chunk"$'\n\n'"$paragraph"
+
+        # Check token count of test chunk
+        local token_count
+        if command -v "$SCRIPT_DIR/token-count" >/dev/null; then
+            token_count=$(echo "$test_chunk" | "$SCRIPT_DIR/token-count" --format=summary 2>/dev/null || echo "999999")
+        else
+            # Fallback: estimate tokens (roughly 4 chars per token)
+            token_count=$((${#test_chunk} / 4))
+        fi
+
+        if [[ $token_count -gt $budget && -n "$current_chunk" ]]; then
+            # Save current chunk
+            local filename="${base_name}_$(printf "%03d" $chunk_num).md"
+            local output_file="$output_dir/$filename"
+            echo "$current_chunk" > "$output_file"
+            files_created+=("$filename")
+            chunk_num=$((chunk_num + 1))
+
+            # Start new chunk with current paragraph
+            current_chunk="$paragraph"
+        else
+            # Add paragraph to current chunk
+            if [[ -n "$current_chunk" ]]; then
+                current_chunk+=$'\n\n'"$paragraph"
+            else
+                current_chunk="$paragraph"
+            fi
+        fi
+    done
+
+    # Save final chunk
+    if [[ -n "$current_chunk" ]]; then
+        local filename="${base_name}_$(printf "%03d" $chunk_num).md"
+        local output_file="$output_dir/$filename"
+        echo "$current_chunk" > "$output_file"
+        files_created+=("$filename")
+    fi
+
+    # Return JSON result
+    jq -n \
+        --arg success "true" \
+        --argjson chunks "${#files_created[@]}" \
+        --arg output_dir "$output_dir" \
+        --argjson budget "$budget" \
+        --argjson files "$(printf '"%s",' "${files_created[@]}" | sed 's/,$//' | sed 's/^/[/' | sed 's/$/]/')" \
+        '{
+            success: ($success | test("true")),
+            chunks: $chunks,
+            outputDir: $output_dir,
+            budget: $budget,
+            files: $files,
+            method: "token_budget"
+        }'
+}
+
+# Generate index file with navigation
+generate_index() {
+    local output_dir="$1"
+    local files=("${@:2}")
+
+    local index_file="$output_dir/index.md"
+    local original_name
+    original_name=$(echo "${files[0]}" | sed 's/_[0-9]\{3\}\.md$//')
+
+    cat > "$index_file" << EOF
+# $original_name - Split Documentation
+
+This document has been split into ${#files[@]} chunks for better manageability.
+
+## Navigation
+
+EOF
+
+    local chunk_num=1
+    for file in "${files[@]}"; do
+        # Try to extract first heading from file
+        local title
+        title=$(head -20 "$output_dir/$file" | grep '^#' | head -1 | sed 's/^#* *//' || echo "Chunk $chunk_num")
+
+        echo "- [$title]($file)" >> "$index_file"
+        chunk_num=$((chunk_num + 1))
+    done
+
+    cat >> "$index_file" << EOF
+
+## Usage
+
+Navigate between chunks using the links above. Each chunk is self-contained but may reference content from other chunks.
+
+Generated by DocuMind split-markdown utility.
+EOF
+
+    log_debug "Generated index file: $index_file"
+}
+
+# Merge split files back together
+merge_files() {
+    local input_dir="$1"
+    local pattern="${2:-*.md}"
+
+    if [[ ! -d "$input_dir" ]]; then
+        die "Input directory does not exist: $input_dir"
+    fi
+
+    local files=()
+    while IFS= read -r -d '' file; do
+        files+=("$file")
+    done < <(find "$input_dir" -name "$pattern" -not -name "index.md" -print0 | sort -z)
+
+    if [[ ${#files[@]} -eq 0 ]]; then
+        die "No markdown files found in: $input_dir"
+    fi
+
+    # Merge files in order
+    for file in "${files[@]}"; do
+        cat "$file"
+        echo  # Add separator between files
+    done
+}
+
+# Validate chunk integrity
+validate_chunks() {
+    local output_dir="$1"
+    local original_file="${2:-}"
+
+    if [[ ! -d "$output_dir" ]]; then
+        die "Output directory does not exist: $output_dir"
+    fi
+
+    local chunk_files=()
+    while IFS= read -r -d '' file; do
+        chunk_files+=("$file")
+    done < <(find "$output_dir" -name "*.md" -not -name "index.md" -print0 | sort -z)
+
+    if [[ ${#chunk_files[@]} -eq 0 ]]; then
+        die "No chunk files found in: $output_dir"
+    fi
+
+    log_info "Validating ${#chunk_files[@]} chunks..."
+
+    local total_errors=0
+    local chunk_num=1
+
+    for chunk_file in "${chunk_files[@]}"; do
+        local errors=0
+
+        # Check if file is readable
+        if [[ ! -r "$chunk_file" ]]; then
+            log_error "Chunk $chunk_num: File not readable"
+            errors=$((errors + 1))
+        fi
+
+        # Check if file is empty
+        if [[ ! -s "$chunk_file" ]]; then
+            log_error "Chunk $chunk_num: File is empty"
+            errors=$((errors + 1))
+        fi
+
+        # Check for basic markdown structure
+        if ! grep -q '^#' "$chunk_file" 2>/dev/null; then
+            log_warning "Chunk $chunk_num: No headings found"
+        fi
+
+        # Validate token budget if specified
+        if command -v "$SCRIPT_DIR/token-count" >/dev/null; then
+            local token_count
+            token_count=$(cat "$chunk_file" | "$SCRIPT_DIR/token-count" --format=summary 2>/dev/null || echo "0")
+            log_debug "Chunk $chunk_num: $token_count tokens"
+        fi
+
+        if [[ $errors -eq 0 ]]; then
+            log_debug "Chunk $chunk_num: Valid"
+        else
+            total_errors=$((total_errors + errors))
+        fi
+
+        chunk_num=$((chunk_num + 1))
+    done
+
+    if [[ $total_errors -eq 0 ]]; then
+        log_success "All chunks are valid"
+        return 0
+    else
+        log_error "Found $total_errors errors in chunks"
+        return 1
+    fi
+}
+
+# Main function
+main() {
+    # Use individual variables for bash 3.2 compatibility
+    local args_help="false"
+    local args_debug="false"
+    local args_quiet="false"
+    local args_strategy="$DEFAULT_STRATEGY"
+    local args_budget="$DEFAULT_BUDGET"
+    local args_level="$DEFAULT_LEVEL"
+    local args_output="$DEFAULT_OUTPUT_DIR"
+    local args_prefix=""
+    local args_index="false"
+    local args_preserve_links="false"
+    local args_merge="false"
+    local args_validate="false"
+    local args_input=""
+
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -h|--help)
+                args_help="true"
+                shift
+                ;;
+            -v|--verbose|--debug)
+                DOCUMIND_DEBUG=true
+                args_debug="true"
+                shift
+                ;;
+            -q|--quiet)
+                DOCUMIND_QUIET=true
+                args_quiet="true"
+                shift
+                ;;
+            --strategy=*)
+                args_strategy="${1#*=}"
+                shift
+                ;;
+            --budget=*)
+                args_budget="${1#*=}"
+                shift
+                ;;
+            --level=*)
+                args_level="${1#*=}"
+                shift
+                ;;
+            --output=*|-o=*)
+                args_output="${1#*=}"
+                shift
+                ;;
+            --prefix=*)
+                args_prefix="${1#*=}"
+                shift
+                ;;
+            --index)
+                args_index="true"
+                shift
+                ;;
+            --preserve-links)
+                args_preserve_links="true"
+                shift
+                ;;
+            --merge)
+                args_merge="true"
+                shift
+                ;;
+            --validate)
+                args_validate="true"
+                shift
+                ;;
+            -*)
+                die "Unknown option: $1"
+                ;;
+            *)
+                args_input="$1"
+                shift
+                ;;
+        esac
+    done
+
+    # Handle help
+    if [[ "$args_help" == "true" ]]; then
+        show_split_usage
+        exit 0
+    fi
+
+    # Initialize DocuMind paths
+    init_documind_paths
+
+    # Handle special operations
+    if [[ "$args_merge" == "true" ]]; then
+        if [[ -z "$args_input" ]]; then
+            die "Input directory required for merge operation"
+        fi
+        merge_files "$args_input"
+        exit 0
+    fi
+
+    if [[ "$args_validate" == "true" ]]; then
+        if [[ -z "$args_input" ]]; then
+            die "Directory required for validation"
+        fi
+        validate_chunks "$args_input"
+        exit $?
+    fi
+
+    # Regular splitting operation
+    if [[ -z "$args_input" ]]; then
+        die "Input file required. Use --help for usage information."
+    fi
+
+    local input_file="$args_input"
+    local output_dir="$args_output"
+    local strategy="$args_strategy"
+    local budget="$args_budget"
+    local level="$args_level"
+
+    validate_file_path "$input_file" true
+
+    # Adjust output directory name if using default
+    if [[ "$output_dir" == "$DEFAULT_OUTPUT_DIR" ]]; then
+        local base_name
+        base_name=$(basename "$input_file" .md)
+        output_dir="${base_name}_split"
+    fi
+
+    log_info "Splitting $input_file using strategy: $strategy"
+
+    local result
+    local success=false
+
+    case "$strategy" in
+        heading)
+            if check_mdsplit_package; then
+                log_debug "Using mdsplit package for heading-based splitting"
+                if result=$(split_with_mdsplit "$input_file" "$output_dir" "heading" "$level"); then
+                    success=true
+                fi
+            fi
+
+            if [[ "$success" != "true" ]]; then
+                log_debug "Falling back to manual heading-based splitting"
+                result=$(split_by_heading_fallback "$input_file" "$output_dir" "$level")
+                success=true
+            fi
+            ;;
+        token)
+            result=$(split_by_token_budget "$input_file" "$output_dir" "$budget")
+            success=true
+            ;;
+        *)
+            die "Unsupported splitting strategy: $strategy"
+            ;;
+    esac
+
+    if [[ "$success" == "true" ]]; then
+        local files
+        files=$(echo "$result" | jq -r '.files[]' 2>/dev/null || echo "")
+
+        if [[ -n "$files" && "$args_index" == "true" ]]; then
+            local files_array=()
+            while IFS= read -r file; do
+                [[ -n "$file" ]] && files_array+=("$file")
+            done <<< "$files"
+
+            if [[ ${#files_array[@]} -gt 0 ]]; then
+                generate_index "$output_dir" "${files_array[@]}"
+            fi
+        fi
+
+        log_success "Split completed successfully"
+        echo "$result" | jq . 2>/dev/null || echo "$result"
+    else
+        die "Failed to split markdown file"
+    fi
+}
+
+# Run main function if script is executed directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi
