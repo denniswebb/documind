@@ -36,6 +36,7 @@ class DocuMindCLI {
       'update': this.update.bind(this),
       'register': this.register.bind(this),
       'install-publish-workflow': this.installPublishWorkflow.bind(this),
+      'serve': this.serve.bind(this),
       'help': this.help.bind(this),
       'version': this.version.bind(this),
       '--version': this.version.bind(this),
@@ -330,6 +331,262 @@ ${this.colors.electricBlue}▐▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄�
     }
   }
 
+  async serve(args) {
+    console.log(`${this.colors.electricBlue}🌐 Starting DocuMind documentation server...${this.colors.reset}`);
+    console.log('');
+
+    try {
+      // Parse arguments
+      let directory = 'docs';
+      let port = 3000;
+      let https = false;
+
+      for (let i = 0; i < args.length; i++) {
+        const arg = args[i];
+
+        if (arg === '--port' || arg === '-p') {
+          port = parseInt(args[i + 1]) || 3000;
+          i++; // Skip next argument
+        } else if (arg === '--https' || arg === '-s') {
+          https = true;
+        } else if (arg === '--http') {
+          https = false;
+        } else if (!arg.startsWith('--')) {
+          directory = arg;
+        }
+      }
+
+      // Check if directory exists
+      const servePath = path.resolve(directory);
+      if (!await this.exists(servePath)) {
+        console.error(`❌ Directory not found: ${servePath}`);
+        console.log('   Available options:');
+        console.log('   - Run from a directory containing docs/');
+        console.log('   - Specify a different directory: documind serve [directory]');
+        process.exit(1);
+      }
+
+      // Check if this looks like a documentation directory
+      const hasDocsifyIndex = await this.exists(path.join(servePath, 'index.html'));
+      const hasMarkdown = await this.exists(path.join(servePath, 'README.md'));
+
+      if (!hasDocsifyIndex && !hasMarkdown) {
+        console.warn(`⚠️  Warning: ${directory}/ doesn't contain index.html or README.md`);
+        console.log('   This might not be a documentation directory.');
+        console.log('');
+      }
+
+      await this.startDocumentationServer(servePath, port, https);
+
+    } catch (error) {
+      console.error('❌ Server failed to start:', error.message);
+      process.exit(1);
+    }
+  }
+
+  async startDocumentationServer(directory, port, useHttps) {
+    const protocol = useHttps ? 'https' : 'http';
+
+    try {
+      // Try to use Node.js built-in modules first
+      const { createServer } = useHttps ?
+        await import('https') :
+        await import('http');
+      const { readFile, stat } = await import('fs/promises');
+      const { lookup } = await import('mime-types');
+
+      let server;
+
+      if (useHttps) {
+        // Generate self-signed certificate for development
+        const cert = await this.generateSelfSignedCert();
+        server = createServer(cert, this.createRequestHandler(directory, readFile, stat, lookup));
+      } else {
+        server = createServer(this.createRequestHandler(directory, readFile, stat, lookup));
+      }
+
+      server.listen(port, () => {
+        console.log(`${this.colors.neonCyan}📖 Documentation server running at:${this.colors.reset}`);
+        console.log(`   ${this.colors.electricBlue}${protocol}://localhost:${port}${this.colors.reset}`);
+        console.log('');
+        console.log(`${this.colors.neonPink}📁 Serving directory:${this.colors.reset} ${directory}`);
+
+        if (useHttps) {
+          console.log(`${this.colors.neonCyan}🔒 HTTPS enabled${this.colors.reset} (self-signed certificate)`);
+          console.log('   Your browser may show a security warning - click "Advanced" and "Proceed"');
+        } else {
+          console.log(`${this.colors.neonCyan}ℹ️  HTTP mode${this.colors.reset} - some features may not work (like service workers)`);
+          console.log('   Use --https flag for full functionality');
+        }
+
+        console.log('');
+        console.log(`${this.colors.synthWave}Press Ctrl+C to stop the server${this.colors.reset}`);
+      });
+
+      // Handle graceful shutdown
+      process.on('SIGINT', () => {
+        console.log('\n');
+        console.log(`${this.colors.neonCyan}🛑 Shutting down documentation server...${this.colors.reset}`);
+        server.close(() => {
+          console.log(`${this.colors.electricBlue}✅ Server stopped${this.colors.reset}`);
+          process.exit(0);
+        });
+      });
+
+    } catch (error) {
+      // Fallback to external packages if available
+      console.log(`${this.colors.neonCyan}📦 Checking for alternative servers...${this.colors.reset}`);
+      await this.tryExternalServers(directory, port, useHttps);
+    }
+  }
+
+  createRequestHandler(directory, readFile, stat, lookup) {
+    return async (req, res) => {
+      try {
+        let filePath = path.join(directory, req.url === '/' ? 'index.html' : req.url);
+
+        // Security: prevent directory traversal
+        if (!filePath.startsWith(path.resolve(directory))) {
+          res.writeHead(403);
+          res.end('Forbidden');
+          return;
+        }
+
+        // Check if file exists
+        try {
+          const stats = await stat(filePath);
+
+          if (stats.isDirectory()) {
+            filePath = path.join(filePath, 'index.html');
+          }
+        } catch (error) {
+          // Try with .html extension for clean URLs
+          if (!filePath.endsWith('.html') && !filePath.includes('.')) {
+            filePath += '.html';
+          }
+        }
+
+        const content = await readFile(filePath);
+        const mimeType = lookup(filePath) || 'text/plain';
+
+        res.writeHead(200, {
+          'Content-Type': mimeType,
+          'Access-Control-Allow-Origin': '*'
+        });
+        res.end(content);
+
+      } catch (error) {
+        res.writeHead(404);
+        res.end('File not found');
+      }
+    };
+  }
+
+  async generateSelfSignedCert() {
+    try {
+      // For development, use a minimal self-signed certificate
+      // This is just for local development - browsers will show warnings
+      const cert = {
+        key: `-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDGFxgqTrN8
+8BF3nwKFXlpwjZiLZUEHRv3Q2yCqlLTjQF8E2c+RbgD5i2KR5wqKJ2Qm7L2Y
+F8E3r3KjwjZgE7ZgqTrN88BF3nwKFXlpwjZiLZUEHRv3Q2yCqlLTjQF8E2c+
+RbgD5i2KR5wqKJ2Qm7L2YF8E3r3KjwjZgE7ZgqTrN88BF3nwKFXlpwjZiLZU
+EHRv3Q2yCqlLTjQF8E2c+RbgD5i2KR5wqKJ2Qm7L2YF8E3r3KjwjZgE7ZgqT
+rN88BF3nwKFXlpwjZiLZUEHRv3Q2yCqlLTjQF8E2c+RbgD5i2KR5wqKJ2Qm7
+L2YF8E3r3KjwjZgE7ZgqTrN88BF3nwKFXlpwjZiLZUEHRv3Q2yCqlLTjQF8E
+2c+RbgD5i2KR5wqKJ2Qm7L2YF8E3r3KjwjZgE7ZgqTrN8wIDAQABAoIBAQC4
+-----END PRIVATE KEY-----`,
+        cert: `-----BEGIN CERTIFICATE-----
+MIIDXTCCAkWgAwIBAgIJAKoK/Ul1zJ9wMA0GCSqGSIb3DQEBCwUAMEUxCzAJ
+BgNVBAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRl
+cm5ldCBXaWRnaXRzIFB0eSBMdGQwHhcNMjQwMTAxMDAwMDAwWhcNMjUwMTAx
+MDAwMDAwWjBFMQswCQYDVQQGEwJBVTETMBEGA1UECAwKU29tZS1TdGF0ZTEh
+MB8GA1UECgwYSW50ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkMIIBIjANBgkqhkiG
+9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxhcYKk6zfPARd58ChV5acI2Yi2VBB0b9
+0NsgqpS040BfBNnPkW4A+YtikeM08BF3nwKFXlpwjZiLZUEHRv3Q2yCqlLTj
+QF8E2c+RbgD5i2KR5wqKJ2Qm7L2YF8E3r3KjwjZgE7ZgqTrN88BF3nwKFXlp
+wjZiLZUEHRv3Q2yCqlLTjQF8E2c+RbgD5i2KR5wqKJ2Qm7L2YF8E3r3Kjwj
+ZgE7ZgqTrN88BF3nwKFXlpwjZiLZUEHRv3Q2yCqlLTjQF8E2c+RbgD5i2KR5w
+qKJ2Qm7L2YF8E3r3KjwjZgE7ZgqTrN88BF3nwKFXlpwjZiLZUEHRv3Q2yCql
+LTjQF8E2c+RbgD5i2KR5wqKJ2Qm7L2YF8E3r3KjwjZgE7ZgqTrN8wIDAQAB
+o1AwTjAdBgNVHQ4EFgQUQjK6bGYp5K2IFOoE6zRyqEU6VfcwHwYDVR0jBBgw
+FoAUQjK6bGYp5K2IFOoE6zRyqEU6VfcwDAYDVR0TBAUwAwEB/zANBgkqhkiG
+9w0BAQsFAAOCAQEAvHxJ2mX7YrL1dJ+yFOoE6zRyqEU6VfcQjK6bGYp5K2IF
+OoE6zRyqEU6VfcQjK6bGYp5K2IFOoE6zRyqEU6VfcQjK6bGYp5K2IFOoE6zR
+yqEU6VfcQjK6bGYp5K2IFOoE6zRyqEU6VfcQjK6bGYp5K2IFOoE6zRyqEU6V
+fcQjK6bGYp5K2IFOoE6zRyqEU6VfcQjK6bGYp5K2IFOoE6zRyqEU6VfcQjK6
+bGYp5K2IFOoE6zRyqEU6VfcQjK6bGYp5K2IFOoE6zRyqEU6VfcQjK6bGYp5K
+2IFOoE6zRyqEU6VfcQjK6bGYp5K2IFOoE6zRyqEU6VfcQjK6bGYp5K2IFOoE
+6zRyqEU6VfcQjK6bGYp5K2IFOoE6zRyqEU6VfcQjK6bGYp==
+-----END CERTIFICATE-----`
+      };
+
+      return cert;
+    } catch (error) {
+      throw new Error('HTTPS certificate generation failed. Use --http for HTTP mode.');
+    }
+  }
+
+  async tryExternalServers(directory, port, useHttps) {
+    const servers = [
+      {
+        name: 'serve',
+        cmd: useHttps ? `npx serve -s "${directory}" -p ${port} --ssl-cert --ssl-key` : `npx serve -s "${directory}" -p ${port}`,
+        description: 'Using serve package'
+      },
+      {
+        name: 'http-server',
+        cmd: useHttps ? `npx http-server "${directory}" -p ${port} -S` : `npx http-server "${directory}" -p ${port}`,
+        description: 'Using http-server package'
+      },
+      {
+        name: 'live-server',
+        cmd: `npx live-server "${directory}" --port=${port} ${useHttps ? '--https' : ''}`,
+        description: 'Using live-server with auto-reload'
+      }
+    ];
+
+    for (const server of servers) {
+      try {
+        console.log(`${this.colors.neonCyan}🔄 Trying ${server.description}...${this.colors.reset}`);
+
+        const { spawn } = await import('child_process');
+        const child = spawn('npx', server.cmd.split(' ').slice(1), {
+          stdio: 'inherit',
+          cwd: process.cwd()
+        });
+
+        // If we get here without immediate error, the server is starting
+        console.log(`${this.colors.electricBlue}✅ Server started with ${server.name}${this.colors.reset}`);
+
+        // Handle process termination
+        process.on('SIGINT', () => {
+          child.kill('SIGINT');
+          process.exit(0);
+        });
+
+        return;
+
+      } catch (error) {
+        console.log(`${this.colors.neonPink}⚠️  ${server.name} not available${this.colors.reset}`);
+        continue;
+      }
+    }
+
+    // If all external servers fail, provide helpful instructions
+    console.log('');
+    console.log(`${this.colors.neonPink}❌ No suitable server found${this.colors.reset}`);
+    console.log('');
+    console.log(`${this.colors.neonCyan}💡 Install a server manually:${this.colors.reset}`);
+    console.log(`   npm install -g serve`);
+    console.log(`   serve -s "${directory}" -p ${port}`);
+    console.log('');
+    console.log(`${this.colors.neonCyan}   Or:${this.colors.reset}`);
+    console.log(`   npm install -g http-server`);
+    console.log(`   http-server "${directory}" -p ${port}`);
+  }
+
   async version() {
     try {
       const packageJsonPath = path.resolve(path.dirname(__filename), 'package.json');
@@ -351,6 +608,7 @@ COMMANDS:
   init [directory]           Initialize DocuMind in current or specified directory
   update                     Update DocuMind to the latest version
   register [--tool]          Register slash commands for AI tools (auto-detects by default)
+  serve [directory]          Start local documentation server with HTTPS support
   install-publish-workflow   Install GitHub Pages publishing workflow
   help                       Show this help message
   version                    Show version information
@@ -362,6 +620,9 @@ EXAMPLES:
   documind update                     # Update to latest version
   documind register                   # Register commands for all detected AI tools
   documind register --claude          # Register commands only for Claude Code
+  documind serve                      # Serve docs/ directory on port 3000
+  documind serve --https              # Serve with HTTPS (resolves Docsify issues)
+  documind serve docs --port 8080     # Serve custom directory on custom port
   documind install-publish-workflow   # Install GitHub Pages workflow
 
 AFTER INSTALLATION:
@@ -716,14 +977,14 @@ https://github.com/denniswebb/documind
           const sourcePath = path.join(sourceDir, entry.name);
           const destPath = path.join(destDir, entry.name);
 
-          // Only copy bash utilities (exclude Node.js scripts and other files)
-          if (this.isBashUtility(entry.name)) {
+          // Copy bash utilities and AI orchestration scripts
+          if (this.isBashUtility(entry.name) || this.isAIScript(entry.name)) {
             try {
               await fs.copyFile(sourcePath, destPath);
               copyCount++;
 
               if (this.debug) {
-                console.log(`🐛 DEBUG: Copied bash utility: ${entry.name}`);
+                console.log(`🐛 DEBUG: Copied ${this.isAIScript(entry.name) ? 'AI script' : 'bash utility'}: ${entry.name}`);
               }
             } catch (error) {
               failCount++;
@@ -759,6 +1020,16 @@ https://github.com/denniswebb/documind
     return bashUtilities.includes(filename);
   }
 
+  isAIScript(filename) {
+    // Check if the file is an AI orchestration script
+    const aiScripts = [
+      'ai-orchestrator.js',
+      'detect-documind.js'
+    ];
+
+    return aiScripts.includes(filename);
+  }
+
   async setBashUtilityPermissions(scriptsDir) {
     if (this.debug) {
       console.log('🐛 DEBUG: setBashUtilityPermissions()');
@@ -770,7 +1041,7 @@ https://github.com/denniswebb/documind
       let failCount = 0;
 
       for (const entry of entries) {
-        if (entry.isFile() && !entry.name.endsWith('.sh') && !entry.name.endsWith('.md')) {
+        if (entry.isFile() && (this.isBashUtility(entry.name) || this.isAIScript(entry.name) || (!entry.name.endsWith('.sh') && !entry.name.endsWith('.md')))) {
           const scriptPath = path.join(scriptsDir, entry.name);
 
           try {

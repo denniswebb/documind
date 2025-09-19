@@ -185,6 +185,38 @@ is_valid_json() {
     echo "$input" | jq . >/dev/null 2>&1
 }
 
+# Safe JSON parsing with error handling
+safe_jq() {
+    local json_input="$1"
+    local query="$2"
+    local default_value="${3:-}"
+
+    if [[ -z "$json_input" ]]; then
+        echo "$default_value"
+        return 1
+    fi
+
+    if ! is_valid_json "$json_input"; then
+        if [[ "$DOCUMIND_DEBUG" == "true" ]]; then
+            echo "Warning: Invalid JSON input for query '$query'" >&2
+        fi
+        echo "$default_value"
+        return 1
+    fi
+
+    local result
+    if result=$(echo "$json_input" | jq -r "$query" 2>/dev/null); then
+        echo "$result"
+        return 0
+    else
+        if [[ "$DOCUMIND_DEBUG" == "true" ]]; then
+            echo "Warning: JSON query failed: '$query'" >&2
+        fi
+        echo "$default_value"
+        return 1
+    fi
+}
+
 # Parse command line arguments helper
 parse_args() {
     local -n args_ref=$1
@@ -396,6 +428,7 @@ create_status_json() {
 validate_file_path() {
     local file="$1"
     local require_exists="${2:-false}"
+    local max_size_mb="${3:-50}"  # Default 50MB limit
 
     if [[ -z "$file" ]]; then
         die "File path cannot be empty"
@@ -403,6 +436,30 @@ validate_file_path() {
 
     if [[ "$require_exists" == "true" && ! -f "$file" ]]; then
         die "File does not exist: $file"
+    fi
+
+    # Check file size if it exists
+    if [[ -f "$file" ]]; then
+        local file_size_bytes
+        if command -v stat >/dev/null 2>&1; then
+            # Try different stat formats for cross-platform compatibility
+            if stat -c "%s" "$file" >/dev/null 2>&1; then
+                file_size_bytes=$(stat -c "%s" "$file")
+            elif stat -f "%z" "$file" >/dev/null 2>&1; then
+                file_size_bytes=$(stat -f "%z" "$file")
+            else
+                # Fallback: use wc -c
+                file_size_bytes=$(wc -c < "$file" | xargs)
+            fi
+        else
+            file_size_bytes=$(wc -c < "$file" | xargs)
+        fi
+
+        # Convert to MB and check limit
+        local file_size_mb=$((file_size_bytes / 1048576))
+        if [[ "$file_size_mb" -gt "$max_size_mb" ]]; then
+            die "File too large: ${file_size_mb}MB exceeds limit of ${max_size_mb}MB: $file"
+        fi
     fi
 
     # Check if file is in a reasonable location (not system directories)
@@ -478,7 +535,7 @@ export -f log_info log_success log_warning log_error log_debug log_header log_su
 export -f die command_exists file_readable dir_exists safe_mkdir get_abs_path
 export -f is_valid_json parse_args run_node_script check_node_package
 export -f count_files format_bytes get_file_size get_line_count
-export -f output_json create_status_json validate_file_path show_usage show_progress
+export -f output_json create_status_json validate_file_path show_usage show_progress is_valid_json safe_jq
 export -f get_color get_colors
 export DOCUMIND_ROOT_DIR DOCUMIND_SCRIPTS_DIR DOCUMIND_NODE_SCRIPTS_DIR
 export DOCUMIND_DEBUG DOCUMIND_QUIET DOCUMIND_UTILS_VERSION

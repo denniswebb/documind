@@ -100,19 +100,42 @@ count_tokens_heuristic() {
     if [[ "$file" == "-" ]]; then
         content=$(cat)
     else
-        validate_file_path "$file" true
+        validate_file_path "$file" true 10  # 10MB limit for token counting
         content=$(cat "$file")
     fi
 
     # Heuristic: roughly 0.75 tokens per word for English text
     local words
     words=$(echo "$content" | wc -w | xargs)
-    local tokens=$(echo "$words * 0.75" | bc | cut -d. -f1)
+
+    # Validate words is a number to prevent division by zero
+    if [[ ! "$words" =~ ^[0-9]+$ ]] || [[ "$words" -eq 0 ]]; then
+        words=0
+    fi
+
+    local tokens
+    if [[ "$words" -gt 0 ]]; then
+        tokens=$(echo "$words * 0.75" | bc | cut -d. -f1)
+    else
+        tokens=0
+    fi
 
     # Additional tokens for punctuation and formatting
     local chars
     chars=$(echo "$content" | wc -c | xargs)
-    local punct_tokens=$(echo "$chars / 100" | bc)
+
+    # Validate chars is a number
+    if [[ ! "$chars" =~ ^[0-9]+$ ]] || [[ "$chars" -eq 0 ]]; then
+        chars=0
+    fi
+
+    local punct_tokens
+    if [[ "$chars" -gt 0 ]]; then
+        punct_tokens=$(echo "$chars / 100" | bc)
+    else
+        punct_tokens=0
+    fi
+
     tokens=$((tokens + punct_tokens))
 
     if [[ "$json_output" == "true" ]]; then
@@ -144,7 +167,7 @@ count_tokens_basic() {
     if [[ "$file" == "-" ]]; then
         content=$(cat)
     else
-        validate_file_path "$file" true
+        validate_file_path "$file" true 10  # 10MB limit for token counting
         content=$(cat "$file")
     fi
 
@@ -231,7 +254,7 @@ process_file() {
     # Extract token count from result
     local tokens
     if [[ "$json_output" == "true" ]]; then
-        tokens=$(echo "$result" | jq -r '.tokens // 0' 2>/dev/null || echo "0")
+        tokens=$(safe_jq "$result" '.tokens // 0' "0")
     else
         tokens="$result"
     fi
@@ -310,7 +333,7 @@ process_files() {
             fi
         else
             # Extract tokens from JSON for summary
-            tokens=$(echo "$result" | jq -r '.tokens // 0' 2>/dev/null || echo "0")
+            tokens=$(safe_jq "$result" '.tokens // 0' "0")
         fi
 
         total_tokens=$((total_tokens + tokens))

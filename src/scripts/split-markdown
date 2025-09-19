@@ -76,7 +76,7 @@ split_with_mdsplit() {
     local strategy="$3"
     local level="${4:-2}"
 
-    validate_file_path "$file" true
+    validate_file_path "$file" true 25  # 25MB limit for markdown splitting
     safe_mkdir "$output_dir"
 
     # Use mdsplit bridge script
@@ -97,7 +97,7 @@ split_by_heading_fallback() {
     local output_dir="$2"
     local level="${3:-2}"
 
-    validate_file_path "$file" true
+    validate_file_path "$file" true 25  # 25MB limit for markdown splitting
     safe_mkdir "$output_dir"
 
     local heading_pattern
@@ -169,7 +169,7 @@ split_by_token_budget() {
     local output_dir="$2"
     local budget="$3"
 
-    validate_file_path "$file" true
+    validate_file_path "$file" true 25  # 25MB limit for markdown splitting
     safe_mkdir "$output_dir"
 
     local content

@@ -75,7 +75,7 @@ validate_yaml_basic() {
     local file="$1"
     local json_output="${2:-false}"
 
-    validate_file_path "$file" true
+    validate_file_path "$file" true 5  # 5MB limit for YAML validation
 
     # Try to parse with basic tools
     local errors=()
@@ -150,7 +150,7 @@ process_file() {
     local mode="$3"
     local schema="$4"
 
-    validate_file_path "$file" true
+    validate_file_path "$file" true 5  # 5MB limit for YAML validation
 
     local json_output="false"
     [[ "$format" == "json" || "$format" == "junit" ]] && json_output="true"

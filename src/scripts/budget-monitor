@@ -121,7 +121,7 @@ analyze_file() {
     local default_budget="$2"
     local manifest="${3:-}"
 
-    validate_file_path "$file" true
+    validate_file_path "$file" true 10  # 10MB limit for budget monitoring
 
     local file_budget
     file_budget=$(get_file_budget "$file" "$default_budget" "$manifest")
@@ -135,11 +135,11 @@ analyze_file() {
     if command -v "$SCRIPT_DIR/token-count" >/dev/null; then
         local token_result
         if token_result=$(cat "$file" | "$SCRIPT_DIR/token-count" --json 2>/dev/null); then
-            if echo "$token_result" | jq . >/dev/null 2>&1; then
-                token_count=$(echo "$token_result" | jq -r '.tokens // 0')
-                word_count=$(echo "$token_result" | jq -r '.words // 0')
-                char_count=$(echo "$token_result" | jq -r '.characters // 0')
-                method=$(echo "$token_result" | jq -r '.method // "unknown"')
+            if is_valid_json "$token_result"; then
+                token_count=$(safe_jq "$token_result" '.tokens // 0' "0")
+                word_count=$(safe_jq "$token_result" '.words // 0' "0")
+                char_count=$(safe_jq "$token_result" '.characters // 0' "0")
+                method=$(safe_jq "$token_result" '.method // "unknown"' "unknown")
             fi
         fi
     fi
@@ -224,9 +224,9 @@ monitor_directory() {
         results+=("$result")
 
         local tokens status file_budget
-        tokens=$(echo "$result" | jq -r '.tokens')
-        status=$(echo "$result" | jq -r '.status')
-        file_budget=$(echo "$result" | jq -r '.budget')
+        tokens=$(safe_jq "$result" '.tokens' "0")
+        status=$(safe_jq "$result" '.status' "unknown")
+        file_budget=$(safe_jq "$result" '.budget' "0")
 
         total_files=$((total_files + 1))
         total_tokens=$((total_tokens + tokens))
