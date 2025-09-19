@@ -318,12 +318,12 @@ async function createBasicDocuMindStructure(documindDir) {
   // Create basic template files
   await fs.writeFile(
     path.join(aiOptimizedDir, 'concept-documentation.yaml'),
-    'specialist_role: concept_specialist\nbase_template: basic.md\ntoken_budget: 3000'
+    'specialist_role: concept_specialist\nbase_template: concept.md\noutput_path_pattern: docs/02-core-concepts/{concept_name}.md'
   );
 
   await fs.writeFile(
-    path.join(templatesDir, 'basic.md'),
-    '# {{concept_name}}\n\nThis is basic template content.'
+    path.join(templatesDir, 'concept.md'),
+    '# {{concept_name}}\n\nThis is concept template content.'
   );
 }
 

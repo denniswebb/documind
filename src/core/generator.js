@@ -19,7 +19,11 @@ class Generator {
   async generateFromManifest(manifestPath, variables = {}) {
     try {
       const manifest = await this.loadManifest(manifestPath);
-      const templateContent = await this.loadTemplate(manifest.base_template);
+      const templatePath = manifest.base_template || manifest.template_path;
+      if (!templatePath) {
+        throw new Error('No template path specified in manifest (missing base_template or template_path)');
+      }
+      const templateContent = await this.loadTemplate(templatePath, path.dirname(manifestPath));
 
       const humanContent = this.templateProcessor.processTemplate(templateContent, variables);
       const aiContent = this.templateProcessor.processTemplate(templateContent, variables, manifest.ai_output_format);
@@ -56,7 +60,19 @@ class Generator {
   }
 
   async generateAll() {
-    const manifestsDir = path.join(__dirname, '../templates/ai-optimized');
+    // Check if we're in development mode (source code) or installation mode (.documind)
+    const documindDir = path.join(process.cwd(), '.documind');
+    let manifestsDir;
+
+    try {
+      // Try to use .documind directory first (installation mode)
+      await fs.access(path.join(documindDir, 'templates', 'ai-optimized'));
+      manifestsDir = path.join(documindDir, 'templates', 'ai-optimized');
+    } catch {
+      // Fall back to source code directory (development mode)
+      manifestsDir = path.join(__dirname, '../templates/ai-optimized');
+    }
+
     const manifestFiles = await fs.readdir(manifestsDir);
     const yamlFiles = manifestFiles.filter(file => file.endsWith('.yaml') && file !== 'ai-manifest-schema.yaml');
 
@@ -94,8 +110,22 @@ class Generator {
     return yaml.parse(content);
   }
 
-  async loadTemplate(templatePath) {
-    const fullPath = path.resolve(path.join(__dirname, '../templates', templatePath));
+  async loadTemplate(templatePath, manifestDir = null) {
+    let fullPath;
+
+    // If template path is already absolute, use it as-is
+    if (path.isAbsolute(templatePath)) {
+      fullPath = templatePath;
+    }
+    // If we have a manifest directory and template path is relative, resolve relative to manifest
+    else if (manifestDir && templatePath.startsWith('../')) {
+      fullPath = path.resolve(manifestDir, templatePath);
+    }
+    // Otherwise, resolve relative to the templates directory
+    else {
+      fullPath = path.resolve(path.join(__dirname, '../templates', templatePath));
+    }
+
     return await fs.readFile(fullPath, 'utf8');
   }
 
