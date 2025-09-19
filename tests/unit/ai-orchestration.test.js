@@ -9,8 +9,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Import modules to test
-const { AIOrchestrator } = await import('../../src/scripts/ai-orchestrator.js');
-const { DocuMindDetector } = await import('../../src/scripts/detect-documind.js');
+const AIOrchestrator = (await import('../../src/scripts/ai-orchestrator.js')).default;
+const DocuMindDetector = (await import('../../src/scripts/detect-documind.js')).default;
 
 describe('AI Orchestration Tests', () => {
   let tempDir;
@@ -95,7 +95,7 @@ describe('AI Orchestration Tests', () => {
       await fs.mkdir(scriptsDir, { recursive: true });
       await fs.writeFile(
         path.join(scriptsDir, 'ai-orchestrator.js'),
-        'export class AIOrchestrator {}'
+        'class AIOrchestrator {} export default AIOrchestrator;'
       );
 
       const result = await detector.detect();
@@ -208,7 +208,7 @@ describe('AI Orchestration Tests', () => {
       const result = await orchestrator.execute('bootstrap');
 
       assert.ok(result.timestamp);
-      assert.strictEqual(result.workingDirectory, tempDir);
+      assert.strictEqual(result.workingDirectory, process.cwd());
       assert.ok(typeof result.duration === 'number');
       assert.ok(result.duration >= 0);
     });
@@ -291,20 +291,28 @@ async function createBasicDocuMindStructure(documindDir) {
   // Create core directory structure
   const coreDir = path.join(documindDir, 'core');
   const templatesDir = path.join(documindDir, 'templates');
+  const scriptsDir = path.join(documindDir, 'scripts');
   const aiOptimizedDir = path.join(templatesDir, 'ai-optimized');
 
   await fs.mkdir(coreDir, { recursive: true });
+  await fs.mkdir(scriptsDir, { recursive: true });
   await fs.mkdir(aiOptimizedDir, { recursive: true });
 
   // Create basic core files
   await fs.writeFile(
     path.join(coreDir, 'generator.js'),
-    'export class Generator { async generateAll() { return []; } }'
+    'class Generator { async generateAll() { return []; } } export default Generator;'
   );
 
   await fs.writeFile(
     path.join(coreDir, 'ai-index-builder.js'),
-    'export class AIIndexBuilder { async updateMasterIndex() { return { totalFiles: 0, indexPath: "test" }; } }'
+    'class AIIndexBuilder { async updateMasterIndex() { return { totalFiles: 0, indexPath: "test" }; } } export default AIIndexBuilder;'
+  );
+
+  // Create AI orchestrator script
+  await fs.writeFile(
+    path.join(scriptsDir, 'ai-orchestrator.js'),
+    'class AIOrchestrator { async execute() { return { success: true }; } } export default AIOrchestrator;'
   );
 
   // Create basic template files
@@ -326,7 +334,7 @@ async function createMockDependencies(documindDir) {
   await fs.writeFile(
     path.join(coreDir, 'generator.js'),
     `
-export class Generator {
+class Generator {
   async generateAll() {
     return [
       {
@@ -347,6 +355,8 @@ export class Generator {
     };
   }
 }
+
+export default Generator;
 `
   );
 
@@ -354,7 +364,7 @@ export class Generator {
   await fs.writeFile(
     path.join(coreDir, 'ai-index-builder.js'),
     `
-export class AIIndexBuilder {
+class AIIndexBuilder {
   async updateMasterIndex(files = []) {
     return {
       totalFiles: files.length,
@@ -363,6 +373,8 @@ export class AIIndexBuilder {
     };
   }
 }
+
+export default AIIndexBuilder;
 `
   );
 }

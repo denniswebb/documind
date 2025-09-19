@@ -11,8 +11,8 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { Generator } from '../core/generator.js';
-import { AIIndexBuilder } from '../core/ai-index-builder.js';
+import Generator from '../core/generator.js';
+import AIIndexBuilder from '../core/ai-index-builder.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -125,6 +125,9 @@ class AIOrchestrator {
 
     // Generate human documentation structure
     await this.createHumanDocStructure();
+
+    // Generate AI documentation structure
+    await this.createAIDocStructure();
 
     return {
       type: 'bootstrap',
@@ -358,6 +361,17 @@ class AIOrchestrator {
     }
   }
 
+  async createAIDocStructure() {
+    const docsDir = path.join(this.workingDir, 'docs');
+    const aiDocsDir = path.join(docsDir, 'ai');
+
+    try {
+      await fs.mkdir(aiDocsDir, { recursive: true });
+    } catch (error) {
+      // Directory might already exist
+    }
+  }
+
   async getAllMarkdownFiles(dir) {
     const files = [];
 
@@ -455,4 +469,5 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     });
 }
 
+export default AIOrchestrator;
 export { AIOrchestrator };

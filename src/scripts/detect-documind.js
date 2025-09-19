@@ -258,4 +258,5 @@ Exit codes:
   runCLI();
 }
 
+export default DocuMindDetector;
 export { DocuMindDetector };
