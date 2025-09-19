@@ -178,8 +178,8 @@ DocuMind automatically detects your AI tools and generates appropriate configura
 
 ### Manual Configuration
 You can customize the system by editing:
-- Command definitions in `.documind/commands.md`
-- System behavior in `.documind/system.md`  
+- Command definitions in `.documind/core/commands.md`
+- System behavior in `.documind/core/system.md`  
 - Templates in `.documind/templates/`
 
 ## 🚀 Advanced Usage

@@ -27,11 +27,11 @@ When users request documentation tasks, recognize these patterns:
 
 Follow these instructions when executing documentation commands:
 
-**For complete DocuMind system instructions, see `.documind/system.md`**
+**For complete DocuMind system instructions, see `.documind/core/system.md`**
 
 ## Command Reference
 
-**For detailed command reference, see `.documind/commands.md`**
+**For detailed command reference, see `.documind/core/commands.md`**
 
 ---
 

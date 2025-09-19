@@ -31,8 +31,8 @@ Recognize these patterns as documentation requests:
 
 ## System Instructions
 
-**For complete DocuMind system instructions, see `.documind/system.md`**
+**For complete DocuMind system instructions, see `.documind/core/system.md`**
 
 ## Available Commands
 
-**For detailed command reference, see `.documind/commands.md`**
+**For detailed command reference, see `.documind/core/commands.md`**

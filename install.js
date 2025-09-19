@@ -647,40 +647,55 @@ https://github.com/denniswebb/documind
   async setupBashUtilities() {
     console.log(`  ${this.colors.neonCyan}🔧 Setting up bash utilities...${this.colors.reset}`);
 
-    const scriptsDir = path.join(this.documindDir, 'scripts');
-    await this.ensureDir(scriptsDir);
+    try {
+      const scriptsDir = path.join(this.documindDir, 'scripts');
+      await this.ensureDir(scriptsDir);
 
-    // Check if we're copying from the current repository (development mode)
-    const sourceScriptsDir = path.join(this.srcDir, 'scripts');
+      // Check if we're copying from the current repository (development mode)
+      const sourceScriptsDir = path.join(this.srcDir, 'scripts');
 
-    if (this.debug) {
-      console.log('🐛 DEBUG: setupBashUtilities()');
-      console.log('  scriptsDir:', scriptsDir);
-      console.log('  sourceScriptsDir:', sourceScriptsDir);
-    }
-
-    // Copy bash utilities if they exist in the source
-    if (await this.exists(sourceScriptsDir)) {
       if (this.debug) {
-        console.log('🐛 DEBUG: Copying bash utilities from development source');
+        console.log('🐛 DEBUG: setupBashUtilities()');
+        console.log('  scriptsDir:', scriptsDir);
+        console.log('  sourceScriptsDir:', sourceScriptsDir);
       }
 
-      // Copy only bash utility files (not Node.js scripts)
-      await this.copyBashUtilities(sourceScriptsDir, scriptsDir);
+      // Copy bash utilities if they exist in the source
+      if (await this.exists(sourceScriptsDir)) {
+        if (this.debug) {
+          console.log('🐛 DEBUG: Copying bash utilities from development source');
+        }
 
-      // Set executable permissions on all scripts
-      await this.setBashUtilityPermissions(scriptsDir);
+        // Copy only bash utility files (not Node.js scripts)
+        const copySuccess = await this.copyBashUtilities(sourceScriptsDir, scriptsDir);
+        if (!copySuccess) {
+          console.warn('  ⚠️  Some bash utilities could not be copied');
+        }
 
-      console.log('  ✓ Bash utilities installed');
-    } else {
-      if (this.debug) {
-        console.log('🐛 DEBUG: Bash utilities not found in source, will be available after first install');
+        // Set executable permissions on all scripts
+        const permissionsSuccess = await this.setBashUtilityPermissions(scriptsDir);
+        if (!permissionsSuccess) {
+          console.warn('  ⚠️  Could not set permissions on some bash utilities');
+        }
+
+        if (copySuccess && permissionsSuccess) {
+          console.log('  ✓ Bash utilities installed');
+        } else {
+          console.log('  ⚠️  Bash utilities installed with warnings');
+        }
+      } else {
+        if (this.debug) {
+          console.log('🐛 DEBUG: Bash utilities not found in source, will be available after first install');
+        }
+        console.log('  ⚠️  Bash utilities will be available after installation completes');
       }
-      console.log('  ⚠️  Bash utilities will be available after installation completes');
-    }
 
-    // Run dependency check if available
-    await this.checkBashDependencies(scriptsDir);
+      // Run dependency check if available
+      await this.checkBashDependencies(scriptsDir);
+    } catch (error) {
+      console.error(`Error setting up bash utilities: ${error.message}`);
+      throw error; // Propagate error to caller
+    }
   }
 
   async copyBashUtilities(sourceDir, destDir) {
@@ -690,10 +705,11 @@ https://github.com/denniswebb/documind
       console.log('  destDir:', destDir);
     }
 
-    await this.ensureDir(destDir);
-
     try {
+      await this.ensureDir(destDir);
       const entries = await fs.readdir(sourceDir, { withFileTypes: true });
+      let copyCount = 0;
+      let failCount = 0;
 
       for (const entry of entries) {
         if (entry.isFile()) {
@@ -702,16 +718,29 @@ https://github.com/denniswebb/documind
 
           // Only copy bash utilities (exclude Node.js scripts and other files)
           if (this.isBashUtility(entry.name)) {
-            await fs.copyFile(sourcePath, destPath);
+            try {
+              await fs.copyFile(sourcePath, destPath);
+              copyCount++;
 
-            if (this.debug) {
-              console.log(`🐛 DEBUG: Copied bash utility: ${entry.name}`);
+              if (this.debug) {
+                console.log(`🐛 DEBUG: Copied bash utility: ${entry.name}`);
+              }
+            } catch (error) {
+              failCount++;
+              console.warn(`Warning: Could not copy ${entry.name}: ${error.message}`);
             }
           }
         }
       }
+
+      if (this.debug) {
+        console.log(`🐛 DEBUG: Copied ${copyCount} utilities, ${failCount} failed`);
+      }
+
+      return failCount === 0; // Return true if all copies succeeded
     } catch (error) {
       console.warn(`Warning: Could not copy bash utilities: ${error.message}`);
+      return false;
     }
   }
 
@@ -737,21 +766,36 @@ https://github.com/denniswebb/documind
 
     try {
       const entries = await fs.readdir(scriptsDir, { withFileTypes: true });
+      let chmodCount = 0;
+      let failCount = 0;
 
       for (const entry of entries) {
         if (entry.isFile() && !entry.name.endsWith('.sh') && !entry.name.endsWith('.md')) {
           const scriptPath = path.join(scriptsDir, entry.name);
 
-          // Set executable permissions (755)
-          await fs.chmod(scriptPath, 0o755);
+          try {
+            // Set executable permissions (755)
+            await fs.chmod(scriptPath, 0o755);
+            chmodCount++;
 
-          if (this.debug) {
-            console.log(`🐛 DEBUG: Set executable permissions: ${entry.name}`);
+            if (this.debug) {
+              console.log(`🐛 DEBUG: Set executable permissions: ${entry.name}`);
+            }
+          } catch (error) {
+            failCount++;
+            console.warn(`Warning: Could not set permissions on ${entry.name}: ${error.message}`);
           }
         }
       }
+
+      if (this.debug) {
+        console.log(`🐛 DEBUG: Set permissions on ${chmodCount} files, ${failCount} failed`);
+      }
+
+      return failCount === 0; // Return true if all chmod operations succeeded
     } catch (error) {
       console.warn(`Warning: Could not set bash utility permissions: ${error.message}`);
+      return false;
     }
   }
 
@@ -1012,7 +1056,7 @@ ${systemContent || 'Follow standard DocuMind principles for documentation manage
 
 ## Available Commands Reference
 
-${commandsContent || 'See .documind/commands.md for detailed command reference.'}
+${commandsContent || 'See .documind/core/commands.md for detailed command reference.'}
 
 ## Smart Help System
 
@@ -1184,8 +1228,8 @@ You have access to documentation commands through natural language or slash nota
 - \`/document index\` - Regenerate documentation index and navigation
 - \`/document search [query]\` - Find existing documentation about topics
 
-**For complete DocuMind system instructions, see \`.documind/system.md\`**
-**For detailed command reference, see \`.documind/commands.md\`**`;
+**For complete DocuMind system instructions, see \`.documind/core/system.md\`**
+**For detailed command reference, see \`.documind/core/commands.md\`**`;
   }
 }
 
