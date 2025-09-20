@@ -15,7 +15,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 class DocuMindDetector {
-  constructor(workingDir = process.cwd()) {
+  constructor(workingDir = process.env.DOCUMIND_TEST_CWD || process.cwd()) {
     this.workingDir = workingDir;
     this.documindDir = path.join(workingDir, '.documind');
   }
@@ -245,12 +245,27 @@ Exit codes:
           break;
 
         default:
-          console.error(`Unknown command: ${command}`);
-          console.error('Run "detect-documind.js help" for usage information');
+          const errorResult = {
+            available: false,
+            status: 'error',
+            message: `Unknown command: ${command}`,
+            error: `Unknown command: ${command}`,
+            timestamp: new Date().toISOString(),
+            workingDirectory: process.cwd()
+          };
+          console.log(JSON.stringify(errorResult, null, 2));
           process.exit(1);
       }
     } catch (error) {
-      console.error('Detection error:', error.message);
+      const errorResult = {
+        available: false,
+        status: 'error',
+        message: 'Detection error occurred',
+        error: error.message,
+        timestamp: new Date().toISOString(),
+        workingDirectory: process.cwd()
+      };
+      console.log(JSON.stringify(errorResult, null, 2));
       process.exit(1);
     }
   }
