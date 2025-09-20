@@ -61,7 +61,8 @@ class Generator {
 
   async generateAll() {
     // Check if we're in development mode (source code) or installation mode (.documind)
-    const documindDir = path.join(process.cwd(), '.documind');
+    const workingDir = process.env.DOCUMIND_TEST_CWD || process.cwd();
+    const documindDir = path.join(workingDir, '.documind');
     let manifestsDir;
 
     try {
@@ -157,7 +158,8 @@ class Generator {
       outputPath = path.join(dir, 'ai', `${basename}-ai.md`);
     }
 
-    return path.resolve(outputPath);
+    const workingDir = process.env.DOCUMIND_TEST_CWD || process.cwd();
+    return path.resolve(workingDir, outputPath);
   }
 
   validateTokenBudget(tokenCount, budget) {

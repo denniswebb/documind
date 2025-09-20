@@ -21,7 +21,8 @@ class AIOrchestrator {
   constructor() {
     this.generator = new Generator();
     this.aiIndexBuilder = new AIIndexBuilder();
-    this.workingDir = process.cwd();
+    // Use test directory if running in test context
+    this.workingDir = process.env.DOCUMIND_TEST_CWD || process.cwd();
     this.documindDir = path.join(this.workingDir, '.documind');
   }
 
@@ -464,7 +465,15 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       process.exit(result.success ? 0 : 1);
     })
     .catch(error => {
-      console.error('Orchestrator error:', error.message);
+      const errorResult = {
+        success: false,
+        error: error.message,
+        command,
+        options,
+        timestamp: new Date().toISOString(),
+        workingDirectory: process.cwd()
+      };
+      console.log(JSON.stringify(errorResult, null, 2));
       process.exit(1);
     });
 }
