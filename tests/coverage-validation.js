@@ -495,7 +495,7 @@ class CoverageValidator {
 }
 
 // CLI interface
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && import.meta.url.startsWith('file:')) {
   const validator = new CoverageValidator();
   validator.validateCoverage().catch(error => {
     console.error('Coverage validation failed:', error);

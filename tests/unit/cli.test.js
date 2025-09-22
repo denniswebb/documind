@@ -123,4 +123,59 @@ describe('CLI', () => {
         'Should not have any ReferenceErrors');
     });
   });
+
+  describe('Execution Check Compatibility', () => {
+    it('should execute when invoked via symlink', async () => {
+      const cliPath = path.join(__dirname, '../../src/cli/documind.js');
+      const symlinkPath = path.join(tempDir, 'test-symlink');
+
+      try {
+        // Create symlink to CLI
+        await fs.symlink(cliPath, symlinkPath);
+
+        // Test execution via symlink
+        const { stdout } = await execFileAsync('node', [symlinkPath, 'help'], {
+          cwd: tempDir,
+          timeout: 5000
+        });
+
+        assert.ok(stdout.includes('DocuMind CLI'),
+          'Should execute successfully via symlink');
+        assert.ok(stdout.includes('Usage:'),
+          'Should show help output when executed via symlink');
+
+      } catch (error) {
+        // Handle case where symlink creation might fail
+        if (error.code === 'EPERM') {
+          console.warn('Skipping symlink test due to permissions');
+          return;
+        }
+        throw error;
+      }
+    });
+
+    it('should not use problematic execution check pattern', async () => {
+      try {
+        const { stdout } = await execFileAsync('grep', [
+          '-r',
+          'import\\.meta\\.url\\s*===\\s*`file://',
+          'src/',
+          '--include=*.js'
+        ], {
+          timeout: 5000
+        });
+
+        assert.strictEqual(stdout.trim(), '',
+          'Found problematic execution pattern. Use: if (process.argv[1] && import.meta.url.startsWith("file:"))');
+
+      } catch (error) {
+        // grep exits with code 1 when no matches found - this is what we want
+        if (error.code === 1) {
+          assert.ok(true, 'No problematic patterns found');
+        } else {
+          throw error;
+        }
+      }
+    });
+  });
 });

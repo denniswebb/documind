@@ -191,7 +191,7 @@ class DocuMindDetector {
 }
 
 // CLI interface when run directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && import.meta.url.startsWith('file:')) {
   const detector = new DocuMindDetector();
 
   const command = process.argv[2] || 'detect';

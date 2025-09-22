@@ -192,7 +192,7 @@ Variables:
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && import.meta.url.startsWith('file:')) {
   const cli = new DocuMindCLI();
   cli.run().catch(error => {
     console.error('Fatal error:', error.message);

@@ -424,7 +424,7 @@ class AIOrchestrator {
 }
 
 // CLI interface when run directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && import.meta.url.startsWith('file:')) {
   const orchestrator = new AIOrchestrator();
 
   const args = process.argv.slice(2);
