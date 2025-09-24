@@ -396,7 +396,7 @@ METHODS:
 }
 
 // Run if called directly
-if (process.argv[1] && import.meta.url.startsWith('file:')) {
+if (process.argv[1] && import.meta.url.startsWith('file:') && import.meta.url.endsWith(process.argv[1])) {
   main().catch(console.error);
 }
 
