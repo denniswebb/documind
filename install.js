@@ -593,7 +593,7 @@ bGYp5K2IFOoE6zRyqEU6VfcQjK6bGYp5K2IFOoE6zRyqEU6VfcQjK6bGYp5K
       const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf8'));
       console.log(`${this.colors.neonPink}DocuMind${this.colors.reset} ${this.colors.neonCyan}v${packageJson.version}${this.colors.reset}`);
     } catch (error) {
-      console.log(`${this.colors.neonPink}DocuMind${this.colors.reset} ${this.colors.neonCyan}v1.0.0${this.colors.reset}`);
+      console.log(`${this.colors.neonPink}DocuMind${this.colors.reset} ${this.colors.neonCyan}v${error.message.includes('package.json') ? 'unknown' : '1.0.0'}${this.colors.reset}`);
     }
   }
 
@@ -715,17 +715,29 @@ https://github.com/denniswebb/documind
 
   async showVersionInfo() {
     try {
+      // Read current version from installed VERSION file
       const currentVersion = await fs.readFile(
-        path.join(this.documindDir, 'core', 'VERSION'), 
+        path.join(this.documindDir, 'core', 'VERSION'),
         'utf8'
       );
-      const newVersion = await fs.readFile(
-        path.join(this.srcDir, 'core', 'VERSION'), 
-        'utf8'
-      );
-      
+
+      // For new version, read from package.json to ensure it's always current
+      let newVersion;
+      try {
+        const packageJsonPath = path.resolve(path.dirname(__filename), 'package.json');
+        const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf8'));
+        newVersion = packageJson.version;
+      } catch (packageError) {
+        // Fallback to VERSION file if package.json is not available
+        newVersion = await fs.readFile(
+          path.join(this.srcDir, 'core', 'VERSION'),
+          'utf8'
+        );
+        newVersion = newVersion.trim();
+      }
+
       console.log(`  ${this.colors.neonCyan}📦 Current version:${this.colors.reset} ${currentVersion.trim()}`);
-      console.log(`  ${this.colors.neonCyan}📦 New version:${this.colors.reset} ${newVersion.trim()}`);
+      console.log(`  ${this.colors.neonCyan}📦 New version:${this.colors.reset} ${newVersion}`);
       console.log('');
     } catch (error) {
       if (this.debug) {
@@ -951,8 +963,8 @@ https://github.com/denniswebb/documind
         console.log('  ⚠️  Bash utilities will be available after installation completes');
       }
 
-      // Run dependency check if available
-      await this.checkBashDependencies(scriptsDir);
+      // Note: Dependency check removed from installation to avoid false failures
+      // Users can run 'npm run check-deps' manually if they want to use bash utilities
     } catch (error) {
       console.error(`Error setting up bash utilities: ${error.message}`);
       throw error; // Propagate error to caller
