@@ -11,11 +11,11 @@ const __dirname = path.dirname(__filename);
 
 const execFileAsync = promisify(execFile);
 
-describe('CLI', () => {
+describe('Orchestrator CLI Interface', () => {
   let tempDir;
 
   beforeEach(async () => {
-    tempDir = path.join(__dirname, '../temp/cli-test');
+    tempDir = path.join(__dirname, '../temp/orchestrator-test');
     await fs.mkdir(tempDir, { recursive: true });
   });
 
@@ -27,32 +27,27 @@ describe('CLI', () => {
     }
   });
 
-  describe('bootstrap command', () => {
+  describe('AI Orchestrator', () => {
     it('should execute without ESM-related errors', async () => {
-      const cliPath = path.join(__dirname, '../../src/cli/documind.js');
+      const orchestratorPath = path.join(__dirname, '../../src/scripts/ai-orchestrator.js');
 
       try {
-        // Execute the CLI with bootstrap command in the temp directory
-        const { stdout, stderr } = await execFileAsync('node', [cliPath, 'bootstrap', 'test-system'], {
+        // Execute the orchestrator - it should fail gracefully with proper error message
+        const { stdout, stderr } = await execFileAsync('node', [orchestratorPath, 'bootstrap'], {
           cwd: tempDir,
           timeout: 10000 // 10 second timeout
         });
 
-        // Verify the process completed successfully
-        assert.ok(stdout.includes('Bootstrapping DocuMind documentation system'),
-          'Should output bootstrap message');
-        assert.ok(stdout.includes('Generated documentation:'),
-          'Should output generation confirmation');
-
-        // Verify no ESM-related errors in stderr
+        // Since we don't have DocuMind installed in test dir, it should fail with installation error
+        // But it should NOT have ESM-related errors
         assert.ok(!stderr.includes('ReferenceError'),
           'Should not have ReferenceError for __dirname');
         assert.ok(!stderr.includes('__dirname is not defined'),
           'Should not have __dirname undefined error');
 
       } catch (error) {
-        // If the command fails due to missing templates or other issues,
-        // we still want to ensure it's not an ESM __dirname error
+        // Expected to fail due to missing DocuMind installation
+        // But verify it's not an ESM error
         if (error.stderr) {
           assert.ok(!error.stderr.includes('ReferenceError'),
             'Should not have ReferenceError for __dirname');
@@ -60,52 +55,84 @@ describe('CLI', () => {
             'Should not have __dirname undefined error');
         }
 
-        // If it's a different error (like missing templates), that's acceptable
-        // for this smoke test - we're primarily testing ESM compatibility
-        if (error.code !== 0 && error.stderr && !error.stderr.includes('__dirname')) {
-          console.warn('CLI test completed with non-ESM error (acceptable for smoke test):', error.message);
-        } else if (error.stderr && error.stderr.includes('__dirname')) {
-          throw error; // This is the ESM error we want to catch
+        // Should get installation error, not ESM error
+        if (error.stdout && error.stdout.includes('"error"')) {
+          // Parse JSON error response
+          try {
+            const response = JSON.parse(error.stdout);
+            assert.ok(response.error, 'Should have error field in JSON response');
+            assert.ok(!response.error.includes('__dirname'), 'Error should not be ESM-related');
+          } catch (parseError) {
+            // If not valid JSON, that's also fine - just ensure no ESM errors
+          }
         }
       }
     });
+  });
 
-    it('should show help when no arguments provided', async () => {
-      const cliPath = path.join(__dirname, '../../src/cli/documind.js');
+  describe('Execution Check Compatibility', () => {
+    it('should execute when invoked via symlink', async () => {
+      const orchestratorPath = path.join(__dirname, '../../src/scripts/ai-orchestrator.js');
+      const symlinkPath = path.join(tempDir, 'test-symlink');
 
       try {
-        const { stdout } = await execFileAsync('node', [cliPath], {
+        // Create symlink to orchestrator
+        await fs.symlink(orchestratorPath, symlinkPath);
+
+        // Test execution via symlink - should fail gracefully, not with execution check error
+        const { stdout } = await execFileAsync('node', [symlinkPath, 'bootstrap'], {
           cwd: tempDir,
           timeout: 5000
         });
 
-        assert.ok(stdout.includes('DocuMind CLI'),
-          'Should display CLI help header');
-        assert.ok(stdout.includes('Usage:'),
-          'Should display usage information');
-        assert.ok(stdout.includes('bootstrap'),
-          'Should list bootstrap command');
+        // Should get a proper error response, not silent exit
+        assert.ok(stdout.length > 0, 'Should produce output, not silent exit');
 
       } catch (error) {
-        // Help command should exit with code 0, but handle gracefully
-        if (error.stdout) {
-          assert.ok(error.stdout.includes('DocuMind CLI'),
-            'Should display CLI help even if exit code is non-zero');
+        // Expected to fail due to missing installation, but should produce output
+        if (error.code === 'EPERM') {
+          console.warn('Skipping symlink test due to permissions');
+          return;
+        }
+
+        // Should get output even on error
+        assert.ok(error.stdout && error.stdout.length > 0, 'Should produce output via symlink');
+      }
+    });
+
+    it('should not use problematic execution check pattern', async () => {
+      try {
+        const { stdout } = await execFileAsync('grep', [
+          '-r',
+          'import\\.meta\\.url\\s*===\\s*`file://',
+          'src/',
+          '--include=*.js'
+        ], {
+          timeout: 5000
+        });
+
+        assert.strictEqual(stdout.trim(), '',
+          'Found problematic execution pattern. Use: if (process.argv[1] && import.meta.url.startsWith("file:"))');
+
+      } catch (error) {
+        // grep exits with code 1 when no matches found - this is what we want
+        if (error.code === 1) {
+          assert.ok(true, 'No problematic patterns found');
+        } else {
+          throw error;
         }
       }
     });
   });
 
   describe('ESM compatibility', () => {
-    it('should import and instantiate CLI class without errors', async () => {
-      // Test that the CLI module can be imported and instantiated
-      const cliPath = path.join(__dirname, '../../src/cli/documind.js');
+    it('should import and instantiate orchestrator without errors', async () => {
+      // Test that the orchestrator module can be imported
+      const orchestratorPath = path.join(__dirname, '../../src/scripts/ai-orchestrator.js');
 
       const testScript = `
-        import('${cliPath}').then(module => {
-          const CLI = module.default;
-          const cli = new CLI();
-          console.log('CLI instantiated successfully');
+        import('${orchestratorPath}').then(() => {
+          console.log('Orchestrator imported successfully');
           process.exit(0);
         }).catch(error => {
           console.error('ESM import failed:', error.message);
@@ -117,8 +144,8 @@ describe('CLI', () => {
         timeout: 5000
       });
 
-      assert.ok(stdout.includes('CLI instantiated successfully'),
-        'Should instantiate CLI without ESM errors');
+      assert.ok(stdout.includes('Orchestrator imported successfully'),
+        'Should import orchestrator without ESM errors');
       assert.ok(!stderr.includes('ReferenceError'),
         'Should not have any ReferenceErrors');
     });

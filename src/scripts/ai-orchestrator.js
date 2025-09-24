@@ -9,6 +9,7 @@
  */
 
 import fs from 'fs/promises';
+import fsSync from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import Generator from '../core/generator.js';
@@ -424,7 +425,7 @@ class AIOrchestrator {
 }
 
 // CLI interface when run directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && import.meta.url.startsWith("file:") && (process.argv[1].endsWith(__filename) || (function() { try { return fsSync.realpathSync(process.argv[1]) === __filename; } catch { return false; } })())) {
   const orchestrator = new AIOrchestrator();
 
   const args = process.argv.slice(2);

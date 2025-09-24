@@ -5,8 +5,7 @@
   "description": "IDE-native documentation system with AI-powered slash commands",
   "main": "install.js",
   "bin": {
-    "documind": "./src/cli/documind.js",
-    "documind-install": "./install.js"
+    "documind": "./install.js"
   },
   "scripts": {
     "test": "node --test tests/unit/*.test.js",

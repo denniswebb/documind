@@ -452,7 +452,7 @@ OUTPUT:
 }
 
 // Run if called directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && import.meta.url.startsWith('file:') && import.meta.url.endsWith(process.argv[1])) {
   main().catch(console.error);
 }
 
