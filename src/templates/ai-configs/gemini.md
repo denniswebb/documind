@@ -1,130 +1,82 @@
 # Gemini CLI Instructions
 
-This repository uses **DocuMind** for intelligent documentation management with automatic dual-purpose generation.
+Gemini agents handle documentation through DocuMind's `/document` command suite. Behaviors are defined in [`src/core/commands.md`](../../core/commands.md) and mirrored for local use at `.documind/core/commands.md`.
 
-## Automatic Dual-Purpose Documentation
+## Execution Blueprint
+1. Map the user request to a `/document` intent.
+2. Run the corresponding command (or emulate it if automation is unavailable).
+3. Review command output alongside repository context.
+4. Respond using the standardized intent/action/output format.
+5. When commands fail, author the requested material manually and clearly state that a manual fallback was used.
 
-When users request documentation, DocuMind automatically generates BOTH human-readable and AI-optimized documentation simultaneously. This comprehensive approach ensures complete documentation coverage without requiring users to understand the technical implementation.
+## Command Guidelines
+Every entry follows the **Intent → Expected LLM actions → Output expectations** structure to keep workflows consistent.
 
-## Documentation Commands
+### `/document bootstrap`
+- **Intent**: Generate the full documentation suite from scratch or refresh it comprehensively.
+- **Expected LLM actions**:
+  1. Execute `/document bootstrap`.
+  2. Examine generated directories, indexes, and summary information.
+  3. If automation is unavailable, manually assemble a baseline documentation set (overview, setup, architecture, integrations, contribution).
+- **Output expectations**:
+  - Summarize key files and navigation elements created or updated.
+  - Highlight any remaining tasks or suggested follow-up commands.
 
-For ALL documentation requests, execute the DocuMind AI orchestrator to generate both human and AI documentation:
+### `/document expand [concept]`
+- **Intent**: Create or deepen documentation for a specific concept, feature, or workflow.
+- **Expected LLM actions**:
+  1. Run `/document expand <concept>` with a descriptive label.
+  2. Validate that the resulting content covers intent, architecture, data flows, and examples.
+  3. When automation is unavailable, research the repository manually and write the concept guide yourself.
+- **Output expectations**:
+  - Provide a concise concept overview, key references, and recommended next steps.
+  - Note the file paths that contain the expanded material.
 
-- `/document bootstrap` - Generate complete project documentation (both types)
-- `/document expand [concept]` - Create detailed documentation for concepts
-- `/document update [section]` - Refresh existing documentation sections
-- `/document analyze [integration]` - Document external service integrations
-- `/document index` - Rebuild documentation navigation and links
-- `/document search [query]` - Search existing documentation
+### `/document update [section]`
+- **Intent**: Refresh an existing documentation section to ensure accuracy.
+- **Expected LLM actions**:
+  1. Invoke `/document update <section>`.
+  2. Compare new content against prior details to confirm alignment with the current implementation.
+  3. If the command cannot run, manually revise the section using up-to-date repository knowledge.
+- **Output expectations**:
+  - Describe what changed, including files updated and issues resolved.
+  - Identify any follow-up work still needed.
+
+### `/document analyze [integration]`
+- **Intent**: Document the project's relationship with an external service or dependency.
+- **Expected LLM actions**:
+  1. Execute `/document analyze <integration>`.
+  2. Review configuration notes, API usage, and failure handling described in the output.
+  3. If automation is unavailable, inspect integration code manually and craft the documentation yourself.
+- **Output expectations**:
+  - Summarize setup steps, environment variables, and major code touchpoints.
+  - Call out risks, limitations, or monitoring considerations.
+
+### `/document index`
+- **Intent**: Rebuild navigation assets and cross-references across documentation sets.
+- **Expected LLM actions**:
+  1. Run `/document index`.
+  2. Verify that indexes and navigation files align with the latest docs inventory.
+  3. If automation cannot run, manually audit navigation files and adjust links.
+- **Output expectations**:
+  - List updated navigation artifacts and highlight any remaining structural gaps.
+
+### `/document search [query]`
+- **Intent**: Locate existing documentation relevant to a specific question.
+- **Expected LLM actions**:
+  1. Call `/document search <query>`.
+  2. Analyze returned matches, extracting concise summaries or excerpts.
+  3. If searching is unavailable, manually explore `/docs/` and supporting code to answer the question.
+- **Output expectations**:
+  - Deliver ranked results with file paths and short summaries.
+  - Point out missing coverage that may warrant future documentation.
 
 ## Natural Language Recognition
+Recognize phrases such as "Generate project docs", "Document the authentication flow", "Update the API guide", "How do we use Stripe?", "Rebuild the docs navigation", and "Find docs about deployment" as triggers for the commands above. Confirm intent with the user if ambiguity remains.
 
-Recognize these patterns as documentation requests and execute the orchestrator:
+## Fallback Responsibilities
+- When `/document` automation fails, Gemini must still fulfill the request by drafting the necessary documentation manually.
+- Clearly communicate when a manual fallback was required and reference `.documind/core/commands.md` for the authoritative command definitions.
+- Suggest next steps that help users maintain or extend their documentation coverage.
 
-- "Document this feature" → `/document expand [feature]`
-- "Update the installation guide" → `/document update installation`
-- "How do we use MongoDB?" → `/document analyze mongodb`
-- "Create API documentation" → `/document expand api`
-- "Generate project docs" → `/document bootstrap`
-- "Find docs about authentication" → `/document search authentication`
-
-## Execution Protocol
-
-For ANY documentation command, follow this standardized workflow:
-
-### 1. DocuMind Detection
-```bash
-# Check if DocuMind is properly installed and available
-node .documind/scripts/detect-documind.js ai-report
-```
-
-### 2. Orchestrated Execution (if DocuMind available)
-```bash
-# Execute the appropriate command via AI orchestrator
-node .documind/scripts/ai-orchestrator.js [command] [parameters]
-
-# Command examples:
-node .documind/scripts/ai-orchestrator.js bootstrap
-node .documind/scripts/ai-orchestrator.js expand user-authentication
-node .documind/scripts/ai-orchestrator.js analyze payment-processing
-node .documind/scripts/ai-orchestrator.js update api-reference
-node .documind/scripts/ai-orchestrator.js index
-node .documind/scripts/ai-orchestrator.js search "database schema"
-```
-
-### 3. Comprehensive Result Presentation
-Parse the orchestrator's JSON output and present detailed results:
-- **Human Documentation**: Files generated in `/docs/` with clear organization
-- **AI Documentation**: AI-optimized content in `/docs/ai/` with token metrics
-- **Cross-References**: Updated navigation and linking between both documentation types
-- **Generation Summary**: File counts, locations, and processing statistics
-
-### 4. Graceful Fallback
-If DocuMind is not available:
-1. Acknowledge the documentation request
-2. Use Gemini's built-in documentation capabilities
-3. Explain the enhanced dual-purpose generation available with DocuMind
-4. Offer installation guidance if requested
-
-## Command Execution Examples
-
-### Bootstrap Documentation
-User: `/document bootstrap` or "Generate all project documentation"
-
-1. **Check**: `node .documind/scripts/detect-documind.js ai-report`
-2. **Execute**: `node .documind/scripts/ai-orchestrator.js bootstrap`
-3. **Present Results**:
-   ```
-   ✅ Complete documentation suite generated successfully!
-
-   📚 Human Documentation (8 files):
-   - /docs/01-getting-oriented/project-overview.md
-   - /docs/02-core-concepts/ (4 concept files)
-   - /docs/03-integrations/ (2 integration files)
-   - /docs/04-development/contributing.md
-
-   🤖 AI Documentation (8 files):
-   - /docs/ai/ (AI-optimized versions)
-   - Total tokens: 15,250
-   - Updated AI_README.md master index
-
-   Both documentation types are now available and cross-linked.
-   ```
-
-### Expand Concept
-User: `/document expand authentication` or "Document the authentication system"
-
-1. **Check**: `node .documind/scripts/detect-documind.js ai-report`
-2. **Execute**: `node .documind/scripts/ai-orchestrator.js expand authentication`
-3. **Present Results**: Show both human and AI documentation files created for the authentication concept
-
-## Parameter Handling
-
-Support these command parameters:
-- **expand**: Concept name as second argument
-- **analyze**: Integration/service name as second argument
-- **update**: Section name as second argument
-- **search**: Query string as second argument
-- **bootstrap** and **index**: No additional parameters required
-
-## Error Management
-
-If orchestrator execution encounters issues:
-1. Parse error details from the JSON response
-2. Provide context-specific troubleshooting guidance
-3. Suggest remediation steps based on the error type
-4. Fall back to Gemini's native documentation generation
-5. Ensure user productivity is maintained regardless of DocuMind status
-
-## Output Quality Standards
-
-Ensure all generated documentation meets these standards:
-- **Accuracy**: Content reflects actual codebase and functionality
-- **Completeness**: Both human and AI versions cover all necessary aspects
-- **Consistency**: Formatting and structure follow established patterns
-- **Accessibility**: Human docs are readable, AI docs are optimally structured
-- **Maintenance**: Documentation is easy to update and extend
-
----
-
-**Primary Objective**: Deliver comprehensive documentation automatically. Users should receive both human-readable and AI-optimized documentation through a single, simple command interface, with the dual-purpose generation being completely transparent to them.
+**Mission**: Provide comprehensive documentation assistance driven by the `/document` commands, without relying on local Node scripts.

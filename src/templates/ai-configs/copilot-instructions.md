@@ -1,113 +1,82 @@
 # GitHub Copilot Configuration
 
-This repository uses DocuMind for intelligent documentation management with automatic dual-purpose generation.
+Copilot should orchestrate DocuMind through the `/document` command family. Review [`src/core/commands.md`](../../core/commands.md) (and the runtime mirror `.documind/core/commands.md`) for the authoritative behaviors and parameters.
 
-## Automatic Documentation Generation
+## Operating Pattern
+For every documentation-related request:
+1. Identify the intent using the cues below.
+2. Execute the associated `/document …` command.
+3. Interpret the response and gather any supporting repository context.
+4. Deliver the expected summary back to the developer.
+5. If the command cannot run, draft the content manually and clearly state that a manual fallback was applied.
 
-When users request documentation, automatically generate BOTH human-readable and AI-optimized documentation. DocuMind orchestrates comprehensive documentation generation without requiring users to understand the technical details.
+## Command Guidance
+Each entry includes the intent, the actions Copilot should perform, and the output expectations developers rely on.
 
-## Documentation Commands
+### `/document bootstrap`
+- **Intent**: Generate a complete set of project documentation when no docs exist or a reset is needed.
+- **Expected LLM actions**:
+  1. Run `/document bootstrap` without arguments.
+  2. Examine the resulting folder structure and note major additions.
+  3. If automation is unavailable, manually outline project overview, setup, architecture, integrations, and contribution flows.
+- **Output expectations**:
+  - Provide a concise summary of new or refreshed documents and navigation assets.
+  - Highlight any gaps that still require human attention.
 
-For ALL documentation requests, execute the DocuMind AI orchestrator to generate both human and AI documentation:
+### `/document expand [concept]`
+- **Intent**: Produce or enrich documentation about a specific concept, feature, or component.
+- **Expected LLM actions**:
+  1. Execute `/document expand <concept>` using a clear concept label derived from the request.
+  2. Review the generated content for completeness (purpose, architecture notes, examples).
+  3. When command execution is impossible, write the concept doc manually, citing relevant files and behaviors.
+- **Output expectations**:
+  - Summarize the concept, key workflows, and related references.
+  - Mention any follow-up actions such as analyzing integrations or updating navigation.
 
-- `/document bootstrap` - Generate complete project documentation (both types)
-- `/document expand [concept]` - Expand documentation for specific concepts
-- `/document update [section]` - Update existing documentation sections
-- `/document analyze [integration]` - Document external service integrations
-- `/document index` - Regenerate documentation navigation
-- `/document search [query]` - Find existing documentation
+### `/document update [section]`
+- **Intent**: Refresh existing documentation so it reflects the current implementation.
+- **Expected LLM actions**:
+  1. Call `/document update <section>` for the targeted guide.
+  2. Compare old and new details to verify accuracy.
+  3. If automation fails, rewrite the section manually using up-to-date repository knowledge.
+- **Output expectations**:
+  - Explain which files were updated and what changed.
+  - Surface any open questions or TODOs encountered during the update.
 
-## Natural Language Recognition
+### `/document analyze [integration]`
+- **Intent**: Document how the codebase interacts with an external service or dependency.
+- **Expected LLM actions**:
+  1. Run `/document analyze <integration>` with the service or API name.
+  2. Review configuration steps, API usage, and failure handling captured in the results.
+  3. If the command cannot execute, inspect the codebase manually (e.g., service clients, environment variables) and write the integration guide yourself.
+- **Output expectations**:
+  - Outline setup requirements, key code references, and operational considerations.
+  - Note any missing safeguards or monitoring that developers should add.
 
-Recognize these patterns as documentation requests and execute the orchestrator:
-- "Document this feature" → `/document expand [feature]`
-- "Update the setup guide" → `/document update setup-guide`
-- "How do we use Redis?" → `/document analyze redis`
-- "Create API docs" → `/document expand api`
-- "Generate project documentation" → `/document bootstrap`
+### `/document index`
+- **Intent**: Regenerate navigation, tables of contents, and cross-reference files.
+- **Expected LLM actions**:
+  1. Execute `/document index`.
+  2. Validate that navigation artifacts reflect the current docs.
+  3. When automation is unavailable, manually adjust navigation files to keep links consistent.
+- **Output expectations**:
+  - Summarize updated index files and any detected inconsistencies.
+  - Provide follow-up guidance if broken links or orphaned docs remain.
 
-## Execution Workflow
+### `/document search [query]`
+- **Intent**: Locate existing documentation relevant to a developer's question.
+- **Expected LLM actions**:
+  1. Invoke `/document search <query>`.
+  2. Review and synthesize the returned matches, gathering short excerpts when helpful.
+  3. If searching is unsupported, manually scan `/docs/` (and the codebase when necessary) to answer the request.
+- **Output expectations**:
+  - Provide ranked results with file paths and context.
+  - Call out gaps that might warrant new documentation.
 
-For any documentation command:
+## Natural Language Mapping
+Copilot should treat phrases such as "Document this feature", "Update the deployment guide", "How do we integrate with Stripe?", "Fix the docs navigation", and "Find docs about authentication" as triggers for the corresponding `/document` commands listed above.
 
-### 1. Check DocuMind Availability
-```bash
-node .documind/scripts/detect-documind.js ai-report
-```
-
-### 2. Execute Orchestrator (if available)
-```bash
-# For bootstrap
-node .documind/scripts/ai-orchestrator.js bootstrap
-
-# For expand
-node .documind/scripts/ai-orchestrator.js expand [concept-name]
-
-# For analyze
-node .documind/scripts/ai-orchestrator.js analyze [integration-name]
-
-# For update
-node .documind/scripts/ai-orchestrator.js update [section-name]
-
-# For index
-node .documind/scripts/ai-orchestrator.js index
-
-# For search
-node .documind/scripts/ai-orchestrator.js search [query]
-```
-
-### 3. Present Results
-Parse the JSON output and present a comprehensive summary:
-- Show human documentation files created in `/docs/`
-- Show AI documentation files created in `/docs/ai/`
-- Display token counts and navigation updates
-- Highlight the dual-purpose nature of the generation
-
-## Example Usage
-
-User requests: `/document bootstrap`
-
-1. Check: `node .documind/scripts/detect-documind.js ai-report`
-2. Execute: `node .documind/scripts/ai-orchestrator.js bootstrap`
-3. Results:
-   ```
-   ✅ Complete documentation suite generated!
-
-   📚 Human Documentation (8 files in /docs/):
-   - Project overview and getting started
-   - Core concepts and architecture
-   - Integration guides and API reference
-
-   🤖 AI Documentation (8 files in /docs/ai/):
-   - AI-optimized content (12,450 tokens)
-   - Updated master index
-   - Specialist documentation for different tasks
-
-   Both documentation types are now available and cross-linked.
-   ```
-
-## Fallback Behavior
-
-If DocuMind is not available:
-1. Acknowledge the documentation request
-2. Use Copilot's native documentation capabilities
-3. Suggest installing DocuMind for enhanced dual-purpose generation
-
-## Command Parameters
-
-Support these parameters when executing the orchestrator:
-- For expand: concept name as second argument
-- For analyze: integration name as second argument
-- For update: section name as second argument
-- For search: query text as second argument
-
-## Error Handling
-
-If orchestrator execution fails:
-1. Parse error details from JSON response
-2. Provide specific troubleshooting steps
-3. Fall back to standard documentation generation
-
----
-
-**Key Goal**: Seamlessly generate both human and AI documentation for every request, making the dual-purpose generation transparent to users.
+## Fallback Responsibilities
+- When `/document` automation is unavailable, Copilot remains responsible for drafting the requested content.
+- Clearly communicate when manual drafting occurred and offer suggestions (e.g., install DocuMind) if appropriate.
+- Always reference `.documind/core/commands.md` so developers know where command semantics are defined.

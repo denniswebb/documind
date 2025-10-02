@@ -1,77 +1,91 @@
 Intelligent documentation command processor for DocuMind projects.
 
-This command provides flexible documentation management through predefined actions, free-form requests, or interactive assistance.
+This prompt assumes DocuMind's `/document` commands behave as defined in [`src/core/commands.md`](../../core/commands.md) and mirrored at `.documind/core/commands.md` when DocuMind is installed locally.
 
-## Command Usage
+## Core Processing Pattern
+1. Determine which `/document` intent the request maps to.
+2. Execute the command (or simulate its effects when automation is unavailable).
+3. Interpret the response, gather supporting context, and present results using the structure below.
+4. When command execution is impossible, perform the work manually—draft the necessary documentation, answer questions directly, and state that a manual fallback was used.
 
-The `/document` command supports three modes:
+## Command Modes
+Each mode is expressed with the consistent **Intent → Expected LLM actions → Output expectations** structure.
 
-### 1. Interactive Mode (No Arguments)
-```
-/document
-```
-- Checks if documentation exists in `/docs/`
-- If no docs: Offers to bootstrap initial documentation
-- If docs exist: Shows available commands and recent documentation
+### `/document` (no arguments)
+- **Intent**: Provide interactive assistance when the user invokes `/document` without parameters.
+- **Expected LLM actions**:
+  1. Check whether documentation already exists in `/docs/` to tailor guidance.
+  2. Offer relevant next steps (bootstrap, expand, update, analyze, index, search) along with concise descriptions.
+  3. If automation is unavailable, manually summarize the current documentation state and propose next actions.
+- **Output expectations**:
+  - Present a friendly menu of available commands with short explanations.
+  - Call out recent documentation changes when known.
+  - Suggest the most relevant next command based on the user's context.
 
-### 2. Predefined Commands
-```
-/document bootstrap                    # Generate complete project documentation
-/document expand [concept]             # Create/expand concept documentation
-/document update [section]             # Update existing documentation section
-/document analyze [integration]        # Document external service integration
-/document index                        # Rebuild navigation and cross-references
-/document search [query]               # Search existing documentation
-```
+### `/document bootstrap`
+- **Intent**: Generate the comprehensive documentation set for the project.
+- **Expected LLM actions**:
+  1. Execute `/document bootstrap`.
+  2. Review the produced structure to identify major sections and indexes.
+  3. If the command cannot run, craft a manual starter documentation suite (overview, setup, architecture, integrations, contribution).
+- **Output expectations**:
+  - Summarize new or updated files, navigation assets, and any follow-up recommendations.
+  - Clarify whether automation or manual drafting produced the result.
 
-### 3. Free-Form Requests (Recommended!)
-```
-/document [free-form message]
-```
+### `/document expand [concept]`
+- **Intent**: Create or enrich documentation for a particular concept or feature.
+- **Expected LLM actions**:
+  1. Invoke `/document expand <concept>` with a descriptive label drawn from the request.
+  2. Validate that the resulting docs cover purpose, architecture, workflows, and examples.
+  3. When automation fails, research the repository manually and author the concept documentation.
+- **Output expectations**:
+  - Provide a concise concept summary, key implementation references, and next steps.
+  - Mention the specific files that now contain the expanded content.
 
-**Examples:**
-- `/document let's update the docs about the database`
-- `/document walk me through an API request to /saveStudent`
-- `/document how do we handle user authentication?`
-- `/document create a troubleshooting guide for deployment issues`
-- `/document explain the payment flow with examples`
-- `/document document the new notification system we just built`
+### `/document update [section]`
+- **Intent**: Refresh an existing documentation section to match current behavior.
+- **Expected LLM actions**:
+  1. Run `/document update <section>`.
+  2. Compare new guidance against previous information to ensure accuracy.
+  3. If automation cannot execute, perform the update manually using repository insights.
+- **Output expectations**:
+  - Describe what changed, note any lingering issues, and reference the updated files.
 
-## Processing Logic
+### `/document analyze [integration]`
+- **Intent**: Document how the project integrates with an external system or dependency.
+- **Expected LLM actions**:
+  1. Execute `/document analyze <integration>`.
+  2. Review configuration, API usage, and error-handling guidance produced by the command.
+  3. When unavailable, inspect the codebase manually and author the integration guide yourself.
+- **Output expectations**:
+  - Summarize integration purpose, setup steps, environment variables, and key code paths.
+  - Flag any risks or follow-up work uncovered during analysis.
 
-When processing `/document` commands, follow this logic:
+### `/document index`
+- **Intent**: Rebuild navigation, tables of contents, and cross-references for the docs set.
+- **Expected LLM actions**:
+  1. Run `/document index`.
+  2. Confirm that navigation artifacts reflect the current documentation inventory.
+  3. Without automation, audit navigation files manually and update links.
+- **Output expectations**:
+  - List the navigation or index files adjusted and note any remaining link issues.
 
-### Step 1: Parse Arguments
-1. **No arguments** → Enter interactive mode
-2. **First word matches predefined command** (bootstrap, expand, update, analyze, index, search) → Execute specific command
-3. **Anything else** → Treat as free-form request
+### `/document search [query]`
+- **Intent**: Locate existing documentation relevant to a user query.
+- **Expected LLM actions**:
+  1. Call `/document search <query>`.
+  2. Review the results and extract high-signal excerpts.
+  3. If the command is unavailable, manually examine `/docs/` and related code to answer the question.
+- **Output expectations**:
+  - Provide ranked findings with file paths, brief summaries, and recommendations for missing coverage if any.
 
-### Step 2: Interactive Mode (No Arguments)
-Check for existing documentation and provide appropriate guidance.
+## Natural Language Mapping
+Map free-form phrases such as "Document this feature", "Update the deployment guide", "How do we use Stripe?", "Fix the docs navigation", and "Find docs about authentication" to the corresponding `/document` commands above. Always confirm the mapping with the user when ambiguity exists.
 
-### Step 3: Free-Form Request Processing
-1. **Interpret Intent** - Analyze the request to determine user goals
-2. **Confirm Action Plan** - Present clear plan before execution
-3. **Research if Needed** - Search codebase and existing docs
-4. **Execute Action** - Perform documentation updates
+## Fallback Expectations
+If DocuMind automation is unavailable:
+- State that a manual drafting path is being used.
+- Produce the requested documentation directly, citing relevant files or observations.
+- Encourage installation or repair of DocuMind and reference `.documind/core/commands.md` for the definitive command definitions.
 
-### Step 4: Knowledge Base Queries
-For help requests, search documentation first, then research codebase if needed.
-
-## DocuMind System Instructions
-
-**For complete system instructions, see `.documind/core/system.md`**
-
-## Available Commands Reference
-
-**For detailed command reference, see `.documind/core/commands.md`**
-
-## Smart Help System
-
-The `/document` command acts as an intelligent help system that can:
-- Answer questions about the codebase
-- Research and explain functionality
-- Proactively suggest documentation improvements
-- Provide guided assistance for complex topics
-
-**Remember**: Every interaction should either provide immediate help or improve the project's documentation for future use.
+**Goal**: Deliver a consistent, LLM-friendly documentation experience centered on the `/document` commands without referencing local Node scripts.
