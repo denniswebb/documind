@@ -24,14 +24,8 @@
     "coverage:check": "node --test --experimental-test-coverage tests/**/*.test.js | grep -E 'Coverage|%'",
     "coverage:validate": "node tests/coverage-validation.js",
     "coverage:report": "npm run test:coverage && npm run coverage:validate",
-    "update": "node .documind/scripts/update.js",
-    "version": "node -e \"console.log(require('./package.json').version)\"",
-    "token-count": ".documind/scripts/token-count",
-    "validate-yaml": ".documind/scripts/validate-yaml",
-    "split-markdown": ".documind/scripts/split-markdown",
-    "check-deps": ".documind/scripts/check-dependencies",
-    "generate-docs": ".documind/scripts/generate-docs",
-    "budget-monitor": ".documind/scripts/budget-monitor"
+    "documind:init": "node install.js init",
+    "version": "node -e \"console.log(require('./package.json').version)\""
   },
   "keywords": [
     "documentation",
