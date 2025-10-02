@@ -27,10 +27,11 @@ DocuMind transforms how you document your projects by enabling documentation com
 ### Installation
 
 ```bash
-# Clone and run
-git clone https://github.com/denniswebb/documind.git
-cd your-project
-node /path/to/documind/.documind/scripts/install.js
+# Install directly from npm (creates .documind/ in the current project)
+npx @dennis-webb/documind init
+
+# Or, if you've added DocuMind as a dependency, use the helper script
+npm run documind:init
 ```
 
 ### First Use
@@ -243,8 +244,8 @@ gh repo create my-app --template documind/template
 ### Manual Installation
 ```bash
 git clone https://github.com/denniswebb/documind.git
-cp -r documind/.documind your-project/
-cd your-project && node .documind/scripts/install.js
+cd documind
+node install.js init ../your-project
 ```
 
 ## 🔧 Configuration
@@ -267,20 +268,18 @@ You can customize the system by editing:
 ### Programmatic Usage
 ```javascript
 // Example usage for local development
-const fs = require('fs');
-const path = require('path');
+const { spawn } = require('child_process');
 
-function runScript(scriptName) {
-  const scriptPath = `.documind/scripts/${scriptName}.js`;
-  if (fs.existsSync(scriptPath)) {
-    require(path.resolve(scriptPath));
-  } else {
-    console.log(`Script ${scriptName} not found`);
-  }
+const documindCli = require.resolve('@dennis-webb/documind/install.js');
+
+function runDocuMind(command, extraArgs = []) {
+  return spawn('node', [documindCli, command, ...extraArgs], {
+    stdio: 'inherit'
+  });
 }
 
-runScript('install');
-runScript('update');
+runDocuMind('init');
+runDocuMind('update');
 ```
 
 ### Custom Commands
@@ -299,7 +298,9 @@ Keep DocuMind current:
 
 ```bash
 # Update from local development
-node .documind/scripts/update.js
+npx @dennis-webb/documind update
+# or, if developing from a cloned copy of this repo
+node install.js update
 ```
 
 ## 🧪 Testing
@@ -313,7 +314,6 @@ DocuMind includes comprehensive testing with Node.js built-in test runner and Gi
 npm test
 
 # Run specific test suites
-npm run test:unit          # Unit tests only
 npm run test:integration   # Integration tests only
 npm run test:performance   # Performance tests only
 
