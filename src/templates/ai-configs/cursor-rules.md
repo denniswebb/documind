@@ -1,115 +1,83 @@
-# DocuMind Documentation System
+# Cursor Configuration
 
-This repository uses DocuMind for intelligent documentation management with automatic dual-purpose generation.
+Cursor agents manage documentation through DocuMind's `/document` commands. Follow the behaviors defined in [`src/core/commands.md`](../../core/commands.md) and, when running locally, the synchronized reference at `.documind/core/commands.md`.
 
-## Automatic Dual-Purpose Generation
+## Standard Operating Sequence
+1. Detect the user's intent and map it to a `/document` command.
+2. Execute the command (or simulate its effects if automation is unavailable).
+3. Review outputs and supporting repository context.
+4. Respond using the intent/action/output format described below.
+5. When commands cannot run, create the requested documentation manually and note that a fallback was used.
 
-When users request documentation, DocuMind automatically generates BOTH human-readable and AI-optimized documentation in a single operation. This provides comprehensive documentation coverage without additional complexity for users.
+## Command Reference
+Each command entry maintains the **Intent → Expected LLM actions → Output expectations** structure for consistency.
 
-## Documentation Commands
+### `/document bootstrap`
+- **Intent**: Build or refresh the complete documentation suite.
+- **Expected LLM actions**:
+  1. Run `/document bootstrap`.
+  2. Inspect resulting documentation directories and indexes.
+  3. If automation is unavailable, author a manual overview covering project introduction, setup, architecture, integrations, and contribution guidelines.
+- **Output expectations**:
+  - Summarize new or updated documentation and navigation assets.
+  - Suggest additional follow-up commands if coverage gaps remain.
 
-Execute the DocuMind AI orchestrator for ALL documentation requests to generate both human and AI documentation:
+### `/document expand [concept]`
+- **Intent**: Produce detailed documentation for a specific concept, feature, or workflow.
+- **Expected LLM actions**:
+  1. Execute `/document expand <concept>` using a descriptive name.
+  2. Verify that generated docs explain purpose, architecture, usage, and examples.
+  3. If the command cannot run, research the relevant files and draft the concept documentation manually.
+- **Output expectations**:
+  - Provide a concise summary of the concept and note where the documentation lives.
+  - Recommend related topics that might benefit from additional coverage.
 
-- `/document bootstrap` - Generate complete project documentation (both types)
-- `/document expand [concept]` - Expand documentation for specific concepts
-- `/document update [section]` - Update existing documentation sections
-- `/document analyze [integration]` - Document external service integrations
-- `/document index` - Regenerate documentation navigation
-- `/document search [query]` - Find existing documentation
+### `/document update [section]`
+- **Intent**: Refresh an existing documentation section with current information.
+- **Expected LLM actions**:
+  1. Call `/document update <section>`.
+  2. Compare new content with previous guidance to ensure accuracy.
+  3. When automation fails, update the section manually using repository insights.
+- **Output expectations**:
+  - Describe the adjustments made and reference the affected files.
+  - Capture any open issues uncovered during the update.
 
-## Natural Language Support
+### `/document analyze [integration]`
+- **Intent**: Document interactions with an external service or dependency.
+- **Expected LLM actions**:
+  1. Run `/document analyze <integration>` with the relevant service name.
+  2. Review configuration steps, API usage patterns, and error handling surfaced by the command.
+  3. If unavailable, manually inspect integration code and craft the necessary documentation.
+- **Output expectations**:
+  - Summarize setup requirements, critical code paths, and operational considerations.
+  - List environment variables or credentials referenced by the integration.
 
-Recognize these patterns as documentation requests and execute the orchestrator:
-- "Document this component" → `/document expand [component]`
-- "Update the README" → `/document update readme`
-- "How do we integrate with Stripe?" → `/document analyze stripe`
-- "Create setup instructions" → `/document expand setup`
-- "Generate all documentation" → `/document bootstrap`
+### `/document index`
+- **Intent**: Rebuild documentation navigation and cross-references.
+- **Expected LLM actions**:
+  1. Execute `/document index`.
+  2. Ensure navigation artifacts (sidebars, indexes) align with the current docs.
+  3. Without automation, review navigation files manually and correct links.
+- **Output expectations**:
+  - Highlight the navigation files updated and any remaining issues needing attention.
 
-## Execution Instructions
+### `/document search [query]`
+- **Intent**: Locate existing documentation relevant to a specific topic.
+- **Expected LLM actions**:
+  1. Invoke `/document search <query>`.
+  2. Analyze the results, collecting excerpts when helpful.
+  3. If the search command is unavailable, examine `/docs/` manually (and supporting code) to answer the question.
+- **Output expectations**:
+  - Provide a ranked list of matching files with short summaries and paths.
+  - Note gaps where new documentation would add value.
 
-For ANY documentation command, follow this automated workflow:
+## Language Mapping and Support
+- Treat phrases such as "Document this component", "Update the README", "How do we integrate Stripe?", "Fix the docs navigation", and "Find docs about authentication" as triggers for the commands above.
+- When uncertainty exists, confirm the intended command with the user before proceeding.
 
-### 1. Detection Phase
-```bash
-# Always check DocuMind availability first
-node .documind/scripts/detect-documind.js ai-report
-```
+## Fallback Responsibilities
+- If `/document` automation is unavailable, Cursor must still produce the requested documentation manually.
+- Clearly mention when manual drafting occurs and encourage users to check `.documind/core/commands.md` for authoritative command semantics.
+- Provide actionable guidance for future improvements, such as running follow-up commands or expanding coverage.
 
-### 2. Orchestration Phase (if DocuMind available)
-```bash
-# Execute appropriate command through orchestrator
-node .documind/scripts/ai-orchestrator.js [command] [parameters]
-
-# Examples:
-node .documind/scripts/ai-orchestrator.js bootstrap
-node .documind/scripts/ai-orchestrator.js expand authentication
-node .documind/scripts/ai-orchestrator.js analyze stripe-integration
-node .documind/scripts/ai-orchestrator.js update getting-started
-node .documind/scripts/ai-orchestrator.js index
-node .documind/scripts/ai-orchestrator.js search "api endpoints"
-```
-
-### 3. Result Presentation
-Process the JSON output and present comprehensive results:
-- **Human Documentation**: Files created in `/docs/` with organized structure
-- **AI Documentation**: AI-optimized files in `/docs/ai/` with token counts
-- **Navigation**: Updated cross-references and index files
-- **Summary**: Total files, locations, and generation metrics
-
-### 4. Fallback Handling
-If DocuMind is not detected:
-1. Use Cursor's native documentation capabilities
-2. Inform user about enhanced dual-purpose generation available with DocuMind
-3. Provide installation guidance if requested
-
-## Example Workflow
-
-User: "Document the authentication system"
-
-1. **Detect**: `node .documind/scripts/detect-documind.js ai-report`
-2. **Execute**: `node .documind/scripts/ai-orchestrator.js expand authentication`
-3. **Present**:
-   ```
-   ✅ Authentication documentation generated successfully!
-
-   📚 Human Documentation:
-   - /docs/02-core-concepts/authentication.md
-   - Complete user guide with examples
-
-   🤖 AI Documentation:
-   - /docs/ai/authentication-concept-ai.md
-   - Optimized for AI consumption (2,850 tokens)
-   - Added to AI master index
-
-   Both versions are now available and automatically linked.
-   ```
-
-## Command Parameter Mapping
-
-- `/document bootstrap` → `bootstrap` (no parameters)
-- `/document expand [concept]` → `expand [concept]`
-- `/document analyze [service]` → `analyze [service]`
-- `/document update [section]` → `update [section]`
-- `/document index` → `index` (no parameters)
-- `/document search [query]` → `search [query]`
-
-## Error Recovery
-
-If orchestrator execution fails:
-1. Parse error details from JSON response
-2. Suggest specific remediation based on error type
-3. Fall back to Cursor's built-in documentation tools
-4. Maintain user productivity regardless of DocuMind status
-
-## Integration Benefits
-
-The automatic dual-purpose generation provides:
-- **Developers**: Human-readable docs in standard format
-- **AI Tools**: Optimized content for better context understanding
-- **Teams**: Consistent documentation across all use cases
-- **Maintenance**: Single command updates both documentation types
-
----
-
-**Core Principle**: Make comprehensive documentation generation completely transparent. Users get both human and AI documentation automatically without needing to understand the underlying dual-purpose architecture.
+**Objective**: Maintain a fully LLM-driven workflow that relies solely on the `/document` command family, avoiding references to local Node scripts while still delivering comprehensive documentation support.

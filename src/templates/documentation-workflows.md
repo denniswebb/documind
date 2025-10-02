@@ -1,329 +1,90 @@
 # DocuMind Documentation Workflows
 
-## Overview
-
-This guide explains the automatic dual-purpose documentation generation workflows that AI agents execute when users request documentation. DocuMind generates both human-readable and AI-optimized documentation seamlessly through a single command interface.
-
-## Core Workflow Architecture
-
-```mermaid
-flowchart TD
-    A[User Request] --> B[AI Agent Recognition]
-    B --> C{DocuMind Available?}
-    C -->|Yes| D[Execute Orchestrator]
-    C -->|No| E[Fallback to Native]
-
-    D --> F[Detection Phase]
-    F --> G[Command Execution]
-    G --> H[Dual Generation]
-
-    H --> I[Human Docs<br>/docs/]
-    H --> J[AI Docs<br>/docs/ai/]
-
-    I --> K[Update Navigation]
-    J --> L[Update AI Index]
-
-    K --> M[Present Results]
-    L --> M
-    E --> M
-```
-
-## Workflow Types
-
-### 1. Bootstrap Workflow
-
-**Purpose**: Generate complete project documentation structure
-
-**User Triggers**:
-- `/document bootstrap`
-- "Generate all project documentation"
-- "Create complete documentation"
-
-**Execution Flow**:
-1. **Detection**: Check DocuMind availability
-2. **Orchestration**: Execute `ai-orchestrator.js bootstrap`
-3. **Generation**:
-   - Process all available manifests
-   - Generate human documentation in `/docs/`
-   - Generate AI documentation in `/docs/ai/`
-   - Create directory structure (01-getting-oriented, 02-core-concepts, etc.)
-4. **Indexing**: Update AI_README.md master index
-5. **Presentation**: Show comprehensive results
-
-**Expected Output**:
-```
-✅ Complete documentation suite generated!
-
-📚 Human Documentation (8 files):
-- /docs/01-getting-oriented/project-overview.md
-- /docs/02-core-concepts/ (4 concept files)
-- /docs/03-integrations/ (2 integration files)
-- /docs/04-development/contributing.md
-
-🤖 AI Documentation (8 files):
-- /docs/ai/ (AI-optimized versions)
-- Total tokens: 15,250
-- Updated AI_README.md master index
-
-📊 Generation Summary:
-- Duration: 2.3 seconds
-- Human docs: 8 files
-- AI docs: 8 files
-- Total tokens: 15,250
-```
-
-### 2. Concept Expansion Workflow
-
-**Purpose**: Create detailed documentation for specific concepts
-
-**User Triggers**:
-- `/document expand [concept]`
-- "Document the authentication system"
-- "Create documentation for user management"
-
-**Execution Flow**:
-1. **Detection**: Verify DocuMind availability
-2. **Orchestration**: Execute `ai-orchestrator.js expand [concept]`
-3. **Manifest Selection**: Find relevant concept manifests
-4. **Generation**:
-   - Generate human concept documentation
-   - Generate AI-optimized concept documentation
-   - Apply concept-specific variables
-5. **Indexing**: Update master index with new concept
-6. **Presentation**: Show focused concept results
-
-**Example Execution**:
-```bash
-# User: "Document the authentication system"
-node .documind/scripts/ai-orchestrator.js expand authentication
-```
-
-**Expected Output**:
-```
-✅ Authentication concept documented successfully!
-
-📚 Human Documentation:
-- /docs/02-core-concepts/authentication.md
-- Complete guide with examples and implementation details
-
-🤖 AI Documentation:
-- /docs/ai/authentication-concept-ai.md
-- Optimized for AI consumption (2,850 tokens)
-- Added to AI master index
-
-🔗 Cross-references updated in navigation
-```
-
-### 3. Integration Analysis Workflow
-
-**Purpose**: Document external service integrations
-
-**User Triggers**:
-- `/document analyze [service]`
-- "How do we use Stripe?"
-- "Document the MongoDB integration"
-
-**Execution Flow**:
-1. **Detection**: Check system readiness
-2. **Orchestration**: Execute `ai-orchestrator.js analyze [service]`
-3. **Integration Focus**: Use integration-specific manifests
-4. **Generation**:
-   - Create service integration documentation
-   - Generate API usage examples
-   - Document configuration and setup
-5. **Categorization**: Place in `/docs/03-integrations/`
-6. **Presentation**: Show integration-specific results
-
-### 4. Section Update Workflow
-
-**Purpose**: Refresh existing documentation sections
-
-**User Triggers**:
-- `/document update [section]`
-- "Update the API documentation"
-- "Refresh the getting started guide"
-
-**Execution Flow**:
-1. **Detection**: Verify DocuMind status
-2. **Orchestration**: Execute `ai-orchestrator.js update [section]`
-3. **Section Identification**: Locate existing documentation
-4. **Regeneration**:
-   - Refresh human documentation
-   - Update AI-optimized versions
-   - Maintain existing structure
-5. **Synchronization**: Update cross-references
-6. **Presentation**: Show update summary
-
-### 5. Index Rebuild Workflow
-
-**Purpose**: Regenerate documentation navigation and cross-references
-
-**User Triggers**:
-- `/document index`
-- "Rebuild documentation index"
-- "Update navigation"
-
-**Execution Flow**:
-1. **Detection**: Confirm system availability
-2. **Orchestration**: Execute `ai-orchestrator.js index`
-3. **Scanning**: Analyze existing documentation structure
-4. **Index Generation**:
-   - Rebuild AI_README.md master index
-   - Update navigation files
-   - Refresh cross-references
-5. **Validation**: Verify link integrity
-6. **Presentation**: Show indexing results
-
-### 6. Search Workflow
-
-**Purpose**: Find existing documentation content
-
-**User Triggers**:
-- `/document search [query]`
-- "Find documentation about databases"
-- "Search for API endpoints"
-
-**Execution Flow**:
-1. **Detection**: Check search capabilities
-2. **Orchestration**: Execute `ai-orchestrator.js search [query]`
-3. **Content Scanning**:
-   - Search human documentation
-   - Search AI documentation
-   - Identify relevant matches
-4. **Result Compilation**: Aggregate findings
-5. **Presentation**: Show search results with context
-
-## Error Recovery Workflows
-
-### 1. DocuMind Not Available
-
-**Scenario**: Detection shows DocuMind is not installed
-
-**Recovery Flow**:
-1. **Acknowledge**: Recognize the documentation request
-2. **Fallback**: Use AI agent's native documentation capabilities
-3. **Suggestion**: Recommend DocuMind installation
-4. **Guidance**: Provide installation instructions if requested
-
-**Example Response**:
-```
-📝 Documentation request acknowledged
-
-⚠️  DocuMind not detected - using native capabilities
-💡 For enhanced dual-purpose generation, install DocuMind:
-   npx @dennis-webb/documind init
-
-📚 Generated basic documentation using Claude's capabilities
-```
-
-### 2. Orchestrator Execution Failure
-
-**Scenario**: AI orchestrator script encounters errors
-
-**Recovery Flow**:
-1. **Error Parsing**: Analyze JSON error response
-2. **Context Assessment**: Determine error type and cause
-3. **Remediation**: Provide specific troubleshooting steps
-4. **Fallback**: Continue with alternative approach
-5. **User Support**: Offer additional assistance
-
-**Example Error Handling**:
-```json
-{
-  "success": false,
-  "error": "DocuMind installation incomplete: .documind/core not found",
-  "suggestions": [
-    "Run DocuMind update: npx @dennis-webb/documind update",
-    "Verify installation: ls -la .documind/"
-  ]
-}
-```
-
-### 3. Partial Generation Failure
-
-**Scenario**: Some documentation generates successfully, others fail
-
-**Recovery Flow**:
-1. **Success Tracking**: Identify what was generated successfully
-2. **Failure Analysis**: Catalog what failed and why
-3. **Partial Results**: Present successful documentation
-4. **Issue Resolution**: Provide specific fixes for failures
-5. **Retry Option**: Offer to retry failed components
-
-## Workflow Optimization
-
-### Performance Considerations
-
-1. **Caching**: Cache detection results during session
-2. **Parallel Execution**: Generate human and AI docs simultaneously
-3. **Incremental Updates**: Only regenerate changed content
-4. **Resource Management**: Monitor token usage and file sizes
-
-### Quality Assurance
-
-1. **Validation**: Verify generated content meets standards
-2. **Cross-Reference**: Ensure links and navigation work correctly
-3. **Consistency**: Maintain formatting and structure standards
-4. **Completeness**: Verify all requested documentation is generated
-
-### User Experience
-
-1. **Progress Indication**: Show generation progress for long operations
-2. **Clear Results**: Present outcomes with visual differentiation
-3. **Error Communication**: Provide actionable error messages
-4. **Fallback Transparency**: Clearly indicate when fallbacks are used
-
-## Integration Patterns
-
-### Natural Language Processing
-
-AI agents should recognize these patterns and map them to workflows:
-
-| User Input | Detected Intent | Workflow |
-|------------|----------------|----------|
-| "Document everything" | Complete generation | Bootstrap |
-| "Explain authentication" | Concept documentation | Expand |
-| "How does Stripe work here?" | Integration analysis | Analyze |
-| "Update the API guide" | Section refresh | Update |
-| "Fix the navigation" | Index rebuild | Index |
-| "Find database docs" | Content search | Search |
-
-### Command Parameter Extraction
-
-Extract parameters from natural language:
-
-- **Concept names**: "authentication", "user management", "data flow"
-- **Service names**: "stripe", "mongodb", "redis", "aws"
-- **Section names**: "api", "getting-started", "installation"
-- **Search queries**: "database schema", "api endpoints", "configuration"
-
-### Result Formatting
-
-Standardize result presentation across all AI agents:
-
-1. **Success indicators**: ✅ for completion, ⚠️ for warnings
-2. **Content categorization**: 📚 for human docs, 🤖 for AI docs
-3. **Metrics display**: File counts, token counts, duration
-4. **Action summaries**: What was created, updated, or found
-
-## Best Practices
-
-### For AI Agent Developers
-
-1. **Always detect first**: Check DocuMind availability before assuming capability
-2. **Parse JSON responses**: Handle structured output from orchestrator
-3. **Provide fallbacks**: Ensure functionality without DocuMind
-4. **Show comprehensive results**: Highlight dual-purpose generation
-5. **Handle errors gracefully**: Provide actionable troubleshooting
-
-### For Users
-
-1. **Use natural language**: AI agents recognize documentation intents
-2. **Be specific**: Provide concept/service names for targeted documentation
-3. **Check results**: Review both human and AI documentation generated
-4. **Update regularly**: Keep documentation current with code changes
-5. **Leverage search**: Use search workflow to find existing content
-
-## Conclusion
-
-The DocuMind workflows enable AI agents to provide comprehensive documentation generation automatically. By following these patterns, AI agents deliver both human-readable and AI-optimized documentation through simple, natural language commands, making the dual-purpose generation transparent to users while ensuring complete documentation coverage.
+DocuMind centralizes documentation automation through the `/document` command family. The authoritative behavior for each command lives in [`src/core/commands.md`](../core/commands.md) and is mirrored at `.documind/core/commands.md` when DocuMind is installed locally.
+
+## Standard Workflow Format
+Every documentation workflow follows the same structure:
+- **Intent**: What the user is trying to accomplish.
+- **Expected LLM actions**: Steps the assistant should perform, including when to call `/document …` commands and how to respond if automation is unavailable.
+- **Output expectations**: The information the assistant returns to the user, including summaries, file references, and follow-up suggestions.
+
+When `/document` commands cannot run (e.g., automation missing or failing), the assistant should carry out the work manually, create the requested documentation directly, and clearly communicate that a fallback approach was used.
+
+## Workflows by Command
+
+### `/document bootstrap`
+- **Intent**: Create or refresh the entire documentation suite for the project.
+- **Expected LLM actions**:
+  1. Execute `/document bootstrap` to generate the baseline documentation set.
+  2. Review the resulting structure, noting new or updated files, navigation assets, and indexes.
+  3. If automation is unavailable, manually draft core documents covering project overview, setup, architecture, integrations, and contribution guidelines.
+- **Output expectations**:
+  - Summarize the generated documentation, highlighting directory structure and key files.
+  - Call out navigation or index updates and recommend next steps if coverage gaps remain.
+
+### `/document expand [concept]`
+- **Intent**: Produce or enrich documentation for a specific concept, component, or workflow.
+- **Expected LLM actions**:
+  1. Run `/document expand <concept>` using a descriptive label.
+  2. Examine the resulting content to ensure it explains purpose, architecture, workflows, and examples.
+  3. If the command fails, research the repository manually and author the concept documentation yourself.
+- **Output expectations**:
+  - Provide a concise concept summary with key insights and related file paths.
+  - Suggest complementary topics or follow-up commands where appropriate.
+
+### `/document analyze [integration]`
+- **Intent**: Document how the project integrates with an external service or dependency.
+- **Expected LLM actions**:
+  1. Execute `/document analyze <integration>` with the relevant service name.
+  2. Review configuration, API usage, failure handling, and monitoring notes produced by the command.
+  3. When automation is unavailable, inspect integration code, environment variables, and existing docs to craft the guide manually.
+- **Output expectations**:
+  - Summarize setup steps, environment requirements, and key code references.
+  - Highlight operational considerations, risks, and follow-up recommendations.
+
+### `/document update [section]`
+- **Intent**: Refresh an existing documentation section to reflect the current state of the system.
+- **Expected LLM actions**:
+  1. Call `/document update <section>` for the targeted area.
+  2. Compare new guidance with previous instructions to confirm accuracy and completeness.
+  3. If automation fails, revise the section manually using recent code and documentation context.
+- **Output expectations**:
+  - Detail the updates made, including affected files and issues resolved.
+  - Note any outstanding questions or TODOs surfaced during the update.
+
+### `/document index`
+- **Intent**: Rebuild navigation, tables of contents, and cross-references across documentation.
+- **Expected LLM actions**:
+  1. Run `/document index` to regenerate navigation assets.
+  2. Verify that sidebars, indexes, and link structures match the latest documentation inventory.
+  3. If the command cannot execute, manually audit navigation files and adjust links to maintain consistency.
+- **Output expectations**:
+  - List updated navigation artifacts and identify any remaining structural issues.
+  - Recommend additional cleanup if broken links or orphaned docs persist.
+
+### `/document search [query]`
+- **Intent**: Locate existing documentation relevant to a user's question.
+- **Expected LLM actions**:
+  1. Invoke `/document search <query>`.
+  2. Analyze the returned matches, capturing concise excerpts when useful.
+  3. If searching is unavailable, manually review `/docs/` and supporting code to answer the question.
+- **Output expectations**:
+  - Provide a ranked summary of relevant documents with file paths.
+  - Point out gaps where new documentation could be added.
+
+## Natural Language Recognition
+Map free-form phrases (e.g., "Document everything", "Explain authentication", "How do we use Stripe?", "Update the API guide", "Fix the navigation", "Find database docs") to the appropriate `/document` command by intent. Confirm the mapping with the user when ambiguity exists.
+
+## Fallback Strategies
+When `/document` automation is not available or fails mid-run:
+1. **Acknowledge** the limitation and explain that a manual path will be used.
+2. **Perform the work manually**, drafting or updating the necessary documentation based on repository evidence.
+3. **Summarize the results** using the intent/action/output format, noting which parts were manually authored.
+4. **Recommend remediation**, such as reinstalling DocuMind, and refer users to `.documind/core/commands.md` for command semantics.
+
+## Quality and Presentation Standards
+- Use consistent success indicators (e.g., ✅ for completion, ⚠️ for warnings) when presenting results.
+- Separate human-readable documentation updates from AI-oriented outputs when both are relevant.
+- Include file paths, summaries, and next steps so users can quickly verify changes.
+
+**Outcome**: A clear, LLM-friendly guide to executing DocuMind workflows that depends solely on `/document` commands and direct assistant behavior—no local scripts required.
