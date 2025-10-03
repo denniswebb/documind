@@ -44,6 +44,19 @@ Every entry follows the **Intent → Expected LLM actions → Output expectation
   - Describe what changed, including files updated and issues resolved.
   - Identify any follow-up work still needed.
 
+### `/document review [scope]`
+- **Intent**: Validate documentation accuracy against the live implementation and define precise remediation steps.
+- **Expected LLM actions**:
+  1. Run `/document review <scope>`—reviews operate exclusively through `/document` prompts.
+  2. Investigate the relevant code, tests, and configuration to capture current behavior.
+  3. Compare those findings to the claims in the matching `/docs/` material.
+  4. Summarize agreements, discrepancies, and potential risks.
+  5. Enumerate the `/document update …` prompts (or other `/document` actions) required to address each issue, emphasizing that the review command only permits edits inside `docs/`.
+- **Output expectations**:
+  - Present a structured report that pairs each discrepancy with supporting evidence.
+  - Confirm which portions of the documentation remain accurate.
+  - Supply the follow-up prompt list needed to remediate the gaps.
+
 ### `/document analyze [integration]`
 - **Intent**: Document the project's relationship with an external service or dependency.
 - **Expected LLM actions**:
@@ -74,7 +87,7 @@ Every entry follows the **Intent → Expected LLM actions → Output expectation
   - Point out missing coverage that may warrant future documentation.
 
 ## Natural Language Recognition
-Recognize phrases such as "Generate project docs", "Document the authentication flow", "Update the API guide", "How do we use Stripe?", "Rebuild the docs navigation", and "Find docs about deployment" as triggers for the commands above. Confirm intent with the user if ambiguity remains.
+Recognize phrases such as "Generate project docs", "Document the authentication flow", "Audit the payments documentation", "Update the API guide", "How do we use Stripe?", "Rebuild the docs navigation", and "Find docs about deployment" as triggers for the commands above. Confirm intent with the user if ambiguity remains.
 
 ## Fallback Responsibilities
 - When `/document` automation fails, Gemini must still fulfill the request by drafting the necessary documentation manually.

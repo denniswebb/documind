@@ -24,6 +24,7 @@
 - **Expand**: `/document expand concept "[name]"`
 - **Analyze**: `/document analyze integration "[service]"`
 - **Update**: `/document update section "[section]"`
+- **Review**: `/document review "[scope]"` (audit docs vs. code)
 - **Bootstrap**: `/document bootstrap` (regenerate all)
 
 > **Scope Reminder**: `/document` operations may only edit files within `docs/`. If non-doc files like `README.md` seem out of sync, flag the issue and request maintainer follow-up instead of modifying them.

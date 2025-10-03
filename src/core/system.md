@@ -119,6 +119,19 @@ docs/
 - **Change summary**: Brief note of what was updated and why
 - **Cross-reference check**: Ensure related sections are still accurate
 
+### For Documentation Reviews
+**Process:**
+1. **Gather evidence**: Inspect the implementation, tests, and configuration related to the requested scope.
+2. **Cross-check statements**: Compare observed behavior with the claims made in the relevant files under `/docs/`.
+3. **Log discrepancies**: Record mismatches, outdated details, and missing coverage along with supporting code references.
+4. **Stage fixes**: Outline the precise `/document update …` prompts (or other `/document` actions) needed to resolve each discrepancy.
+
+**Output Format:**
+- **Findings summary**: Concise list of confirmed matches and detected issues.
+- **Evidence trail**: Code paths, commits, or configuration snippets that justify each mismatch.
+- **Follow-up plan**: Explicit `/document update` prompts scoped to the affected documentation files.
+- **Edit boundaries**: Reiterate that `/document review` only authorizes changes inside `docs/`; code modifications or non-doc edits must be requested separately.
+
 ## FRESH GENERATION PROCESS
 
 ### STEP 1: COMPREHENSIVE WORKSPACE ANALYSIS

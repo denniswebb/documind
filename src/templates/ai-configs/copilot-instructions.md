@@ -51,6 +51,19 @@ Each entry includes the intent, the actions Copilot should perform, and the outp
   - Explain which files were updated and what changed.
   - Surface any open questions or TODOs encountered during the update.
 
+### `/document review [scope]`
+- **Intent**: Audit existing documentation against the current implementation and plan targeted fixes.
+- **Expected LLM actions**:
+  1. Execute `/document review <scope>`—reviews are driven entirely through `/document` prompts.
+  2. Gather fresh evidence from the relevant code, tests, and configuration.
+  3. Compare that evidence to the statements in the associated `/docs/` files.
+  4. Summarize confirmations and mismatches, calling out risks or outdated instructions.
+  5. Stage explicit `/document update …` prompts (or other `/document` actions) for each issue; remember that the review command only authorizes edits inside `docs/`.
+- **Output expectations**:
+  - Deliver a findings report that pairs each discrepancy with supporting evidence.
+  - Highlight any areas that remain accurate to reinforce confidence.
+  - Provide the follow-up prompt list developers should run to close the gaps.
+
 ### `/document analyze [integration]`
 - **Intent**: Document how the codebase interacts with an external service or dependency.
 - **Expected LLM actions**:
@@ -82,7 +95,7 @@ Each entry includes the intent, the actions Copilot should perform, and the outp
   - Call out gaps that might warrant new documentation.
 
 ## Natural Language Mapping
-Copilot should treat phrases such as "Document this feature", "Update the deployment guide", "How do we integrate with Stripe?", "Fix the docs navigation", and "Find docs about authentication" as triggers for the corresponding `/document` commands listed above.
+Copilot should treat phrases such as "Document this feature", "Update the deployment guide", "Audit the payments doc", "How do we integrate with Stripe?", "Fix the docs navigation", and "Find docs about authentication" as triggers for the corresponding `/document` commands listed above.
 
 ## Fallback Responsibilities
 - When `/document` automation is unavailable, Copilot remains responsible for drafting the requested content.
