@@ -11,11 +11,17 @@
 - **⚙️ Chapter 2: Core Concepts**
   - [Overview](02-core-concepts/README.md)
   - [CLI System](02-core-concepts/01-cli-system.md)
+  - [Generator Safeguards](02-core-concepts/02-generator-safeguards.md)
+  - [Prompt Orchestration Flow](02-core-concepts/03-prompt-orchestration-flow.md)
+  - [AI Configuration Lifecycle](02-core-concepts/04-ai-config-lifecycle.md)
 
 - **🛠️ Chapter 3: Development**
   - [Overview](03-development/README.md)
   - [Setup](03-development/01-setup.md)
   - [CLI Deep Dive](03-development/02-cli-deep-dive.md)
+  - [Contributor Workflow](03-development/03-contributor-workflow.md)
+  - [Testing Strategy](03-development/04-testing-strategy.md)
+  - [Prompt Playbook Maintenance](03-development/05-prompt-playbook-maintenance.md)
 
 ---
 
