@@ -56,6 +56,20 @@ Each command entry lists natural language cues Claude should recognize, followed
   - Describe the adjustments made, including files touched and issues resolved.
   - Point out any remaining open questions or TODOs discovered during the update.
 
+### `/document review [scope]`
+- **Natural language cues**: "Is this doc still accurate?", "Audit the payments guide", "Review the API reference against the code".
+- **Intent**: Verify that existing documentation matches the current implementation and stage targeted fixes.
+- **Expected LLM actions**:
+  1. Execute `/document review <scope>`—the entire review is orchestrated through `/document` prompts.
+  2. Gather current behavior evidence from relevant code, tests, and configuration.
+  3. Compare findings with the statements in the corresponding `/docs/` files.
+  4. Summarize mismatches and propose follow-up `/document update …` prompts (or other `/document` actions) scoped to the affected docs.
+  5. Remember: the review command only authorizes edits inside `docs/`; never suggest direct code changes in this phase.
+- **Output expectations**:
+  - Provide a structured findings report highlighting confirmed matches and discrepancies.
+  - Cite the supporting code evidence for each issue.
+  - List the exact follow-up prompts developers should run to resolve the gaps.
+
 ### `/document analyze [integration]`
 - **Natural language cues**: "How do we use Stripe?", "Document the MongoDB integration", "Explain our AWS setup".
 - **Intent**: Produce integration-focused documentation that maps external services to in-repo usage.

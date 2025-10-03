@@ -11,6 +11,7 @@ The `/document` command can be used in several ways:
     *   `bootstrap`: Generate documentation from scratch.
     *   `expand [concept]`: Add detail to a specific concept.
     *   `update [section]`: Refresh an existing section.
+    *   `review [scope]`: Audit docs against the implementation and stage follow-up fixes.
     *   `analyze [integration]`: Document an external service.
     *   `index`: Rebuild the navigation.
     *   `search [query]`: Search the documentation.
@@ -25,6 +26,8 @@ When a `/document` command is executed, the system follows these steps:
 3.  **Confirm Action Plan**: Before making changes, DocuMind presents a clear plan of action.
 4.  **Research**: The system may research the codebase or existing documentation to gather context.
 5.  **Execute**: The appropriate action is performed, such as creating or updating documentation files.
+
+During a `/document review` run, DocuMind inspects the relevant code, compares its findings with the statements inside `docs/`, and produces a findings report. The review itself does not modify files; instead, it recommends targeted `/document update …` prompts that are restricted to documentation files so you can apply corrections safely.
 
 This system is designed to be a "living documentation" that evolves with your codebase.
 
