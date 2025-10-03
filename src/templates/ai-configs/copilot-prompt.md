@@ -2,6 +2,8 @@ Intelligent documentation command processor for DocuMind projects.
 
 This prompt assumes DocuMind's `/document` commands behave as defined in [`src/core/commands.md`](../../core/commands.md) and mirrored at `.documind/core/commands.md` when DocuMind is installed locally.
 
+> **Documentation Scope Guardrail**: Limit every `/document` edit to `docs/`. When you identify stale information in `README.md` or other non-doc files, flag it explicitly and ask for maintainer follow-up instead of editing those files.
+
 ## Core Processing Pattern
 1. Determine which `/document` intent the request maps to.
 2. Execute the command (or simulate its effects when automation is unavailable).

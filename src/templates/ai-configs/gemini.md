@@ -2,6 +2,8 @@
 
 Gemini agents handle documentation through DocuMind's `/document` command suite. Behaviors are defined in [`src/core/commands.md`](../../core/commands.md) and mirrored for local use at `.documind/core/commands.md`.
 
+> **Documentation Scope Guardrail**: Keep all `/document` edits inside `docs/`. When you notice outdated content in `README.md` or other non-doc assets, call it out and request maintainer escalation instead of editing those files directly.
+
 ## Execution Blueprint
 1. Map the user request to a `/document` intent.
 2. Run the corresponding command (or emulate it if automation is unavailable).

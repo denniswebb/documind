@@ -2,6 +2,8 @@
 
 Copilot should orchestrate DocuMind through the `/document` command family. Review [`src/core/commands.md`](../../core/commands.md) (and the runtime mirror `.documind/core/commands.md`) for the authoritative behaviors and parameters.
 
+> **Documentation Scope Guardrail**: Restrict all `/document` edits to the `docs/` tree. When you notice drift in `README.md` or any other non-doc file, report the discrepancy and escalate rather than modifying those files yourself.
+
 ## Automatic Documentation Generation Checks
 
 - Run `node .documind/scripts/detect-documind.js ai-report` to verify that Automatic Documentation Generation is available and to locate `.documind/scripts/ai-orchestrator.js`.

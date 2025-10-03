@@ -2,6 +2,8 @@
 
 DocuMind manages documentation through the `/document` command family. Claude agents should follow the behaviors defined in [`src/core/commands.md`](../../core/commands.md) and the mirrored runtime reference at `.documind/core/commands.md` when installed locally.
 
+> **Documentation Scope Guardrail**: During `/document` tasks, only modify files under `docs/`. If you spot outdated information in `README.md` or any other non-doc file, do **not** edit it—raise an alert in your response so maintainers can address it separately.
+
 ## Automatic Documentation Generation Overview
 
 DocuMind's **Automatic Documentation Generation** pipeline still begins with environment detection before orchestrating `/document` commands. When operating in a local checkout:

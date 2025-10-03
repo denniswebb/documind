@@ -2,6 +2,8 @@
 
 Cursor agents manage documentation through DocuMind's `/document` commands. Follow the behaviors defined in [`src/core/commands.md`](../../core/commands.md) and, when running locally, the synchronized reference at `.documind/core/commands.md`.
 
+> **Documentation Scope Guardrail**: Only edit files inside `docs/` during `/document` work. When you detect outdated information in `README.md` or any other non-doc file, surface the issue and request maintainer intervention instead of changing those files yourself.
+
 ## Standard Operating Sequence
 1. Detect the user's intent and map it to a `/document` command.
 2. Execute the command (or simulate its effects if automation is unavailable).
