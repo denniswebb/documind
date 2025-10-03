@@ -213,6 +213,7 @@ For each external service identified:
 ## Critical Rules
 
 ### NEVER:
+- Edit files outside the `docs/` directory during `/document` operations. If you discover discrepancies in files like `README.md` or other non-doc assets, raise an explicit alert and request maintainer review instead of modifying them yourself.
 - Modify or delete `.documind/` contents (system is immutable)
 - Overwrite existing documentation without preserving key information
 - Create duplicate sections that already exist
