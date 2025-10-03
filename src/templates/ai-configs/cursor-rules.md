@@ -42,6 +42,19 @@ Each command entry maintains the **Intent → Expected LLM actions → Output ex
   - Describe the adjustments made and reference the affected files.
   - Capture any open issues uncovered during the update.
 
+### `/document review [scope]`
+- **Intent**: Assess existing documentation accuracy and stage targeted corrections.
+- **Expected LLM actions**:
+  1. Run `/document review <scope>`—all review activity is mediated through `/document` prompts.
+  2. Collect evidence from the relevant code, tests, and configuration to describe current behavior.
+  3. Compare those observations with the claims in the matching `/docs/` content.
+  4. Summarize matches, discrepancies, and risks.
+  5. Outline the exact `/document update …` prompts (or other `/document` actions) needed to fix each issue, noting that the review command authorizes edits only within `docs/`.
+- **Output expectations**:
+  - Produce a structured findings summary with evidence links.
+  - Highlight documentation areas that remain accurate to confirm coverage.
+  - Provide the follow-up prompt checklist required to remediate gaps.
+
 ### `/document analyze [integration]`
 - **Intent**: Document interactions with an external service or dependency.
 - **Expected LLM actions**:
@@ -72,7 +85,7 @@ Each command entry maintains the **Intent → Expected LLM actions → Output ex
   - Note gaps where new documentation would add value.
 
 ## Language Mapping and Support
-- Treat phrases such as "Document this component", "Update the README", "How do we integrate Stripe?", "Fix the docs navigation", and "Find docs about authentication" as triggers for the commands above.
+- Treat phrases such as "Document this component", "Update the README", "Audit the payments doc", "How do we integrate Stripe?", "Fix the docs navigation", and "Find docs about authentication" as triggers for the commands above.
 - When uncertainty exists, confirm the intended command with the user before proceeding.
 
 ## Fallback Responsibilities

@@ -24,6 +24,7 @@
 - **Expand**: `/document expand concept "[name]"`
 - **Analyze**: `/document analyze integration "[service]"`
 - **Update**: `/document update section "[section]"`
+- **Review**: `/document review "[scope]"` (audit docs vs. code)
 - **Bootstrap**: `/document bootstrap` (regenerate all)
 
 ### 🎯 Quick Actions

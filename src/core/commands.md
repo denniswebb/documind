@@ -43,6 +43,21 @@ Update existing documentation section with current information.
 - "Update the getting started guide"
 - "Refresh the deployment documentation"
 
+### /document review [scope]
+Audit existing documentation against the implementation.
+- Example: `/document review payments-guide`
+- Gathers current behavior evidence from the codebase
+- Compares findings with statements in `/docs/`
+- Summarizes mismatches and risks
+- Suggests targeted `/document update` follow-ups for fixes
+- Entirely driven by `/document` prompts with no direct edits to code or docs during the review phase
+
+**Usage:**
+- `/document review authentication`
+- `/document review docs/02-core-concepts/01-cli-system.md`
+- "Review the deployment guide for accuracy"
+- "Audit the API reference against the code"
+
 ### /document analyze [integration]
 Document external service integration or dependency.
 - Example: `/document analyze stripe-payments`
@@ -99,11 +114,17 @@ The AI should recognize these natural language variants and map them to the appr
 - "Add docs for [component]"
 - "Create documentation for [concept]"
 
-### Update Patterns  
+### Update Patterns
 - "Update the [section] docs"
 - "Refresh the [guide/readme]"
 - "Fix outdated documentation"
 - "Revise the [section] information"
+
+### Review Patterns
+- "Is this documentation accurate?"
+- "Audit the [section] guide"
+- "Review the docs for [feature]"
+- "Compare the documentation to the code"
 
 ### Analyze Patterns
 - "How do we use [service/API]?"
@@ -131,3 +152,4 @@ When the AI detects the user is working in a documentation context (files in `/d
 - "The setup guide is outdated" → `/document update setup-guide`
 - "How does this work?" → `/document expand [current-system]`
 - "Add an example" → `/document expand [current-section]` with focus on examples
+- "Does this still match the code?" → `/document review [current-section]` to compare implementation vs. docs
