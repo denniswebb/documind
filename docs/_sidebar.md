@@ -33,6 +33,8 @@
 - **Review**: `/document review "[scope]"` (audit docs vs. code)
 - **Bootstrap**: `/document bootstrap` (regenerate all)
 
+> **Scope Reminder**: `/document` operations may only edit files within `docs/`. If non-doc files like `README.md` seem out of sync, flag the issue and request maintainer follow-up instead of modifying them.
+
 ### 🎯 Quick Actions
 
 - [📝 Request Documentation Update](https://github.com/denniswebb/documind/issues/new?template=documentation-request.md&labels=documentation)

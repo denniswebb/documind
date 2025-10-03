@@ -14,6 +14,11 @@ A notable feature of the CLI is its 80s vaporwave-inspired aesthetic, complete w
 
 The `run()` method is the main entry point, parsing `process.argv` to determine which command to execute.
 
+### Documentation Safety Boundaries
+
+- `/document` commands must only modify files inside the `docs/` directory. Treat the rest of the repository (including `README.md`, configuration files, and source code) as read-only during documentation sessions.
+- When you discover outdated information outside `docs/`, note the discrepancy in your response and escalate through the project's documentation issue template or maintainer channel rather than editing the file yourself.
+
 ### `init`
 
 -   **Purpose**: Initializes DocuMind in a project.
