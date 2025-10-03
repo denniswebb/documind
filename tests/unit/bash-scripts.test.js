@@ -307,37 +307,6 @@ describe('Bash Scripts', () => {
         });
     });
 
-    describe('generate-docs', () => {
-        const generateDocsScript = path.join(scriptsDir, 'generate-docs');
-
-        test('should display help information', async () => {
-            const { stdout } = await execAsync(`"${generateDocsScript}" --help`);
-
-            assert(stdout.includes('Orchestrate complete documentation'));
-            assert(stdout.includes('GENERATION MODES:'));
-            assert(stdout.includes('PIPELINE OPTIONS:'));
-        });
-
-        test('should handle dry-run mode', async () => {
-            const outputDir = path.join(fixturesDir, 'docs-output');
-            const { stdout } = await execAsync(`"${generateDocsScript}" --dry-run --output="${outputDir}" bootstrap`);
-
-            assert(stdout.includes('Dry run mode'));
-            assert(stdout.includes('Would generate') || stdout.includes('bootstrap'));
-        });
-
-        test('should bootstrap documentation', async () => {
-            const outputDir = path.join(fixturesDir, 'docs-output');
-
-            const { stdout } = await execAsync(`"${generateDocsScript}" --output="${outputDir}" bootstrap`);
-
-            assert(stdout.includes('bootstrap') || stdout.includes('completed'));
-
-            // Cleanup
-            await fs.rm(outputDir, { recursive: true, force: true }).catch(() => {});
-        });
-    });
-
     describe('budget-monitor', () => {
         const budgetMonitorScript = path.join(scriptsDir, 'budget-monitor');
 
@@ -841,7 +810,6 @@ async function makeScriptsExecutable() {
         'validate-yaml',
         'split-markdown',
         'check-dependencies',
-        'generate-docs',
         'budget-monitor'
     ];
 

@@ -2,6 +2,12 @@
 
 Copilot should orchestrate DocuMind through the `/document` command family. Review [`src/core/commands.md`](../../core/commands.md) (and the runtime mirror `.documind/core/commands.md`) for the authoritative behaviors and parameters.
 
+## Automatic Documentation Generation Checks
+
+- Run `node .documind/scripts/detect-documind.js ai-report` to verify that Automatic Documentation Generation is available and to locate `.documind/scripts/ai-orchestrator.js`.
+- If detection succeeds, **Execute Orchestrator** commands such as `node .documind/scripts/ai-orchestrator.js bootstrap` or `expand <concept>` as described below, and surface the results to the developer.
+- When detection fails or the orchestrator is unavailable, explain the remediation steps and continue by drafting the requested docs manually so dual-purpose generation requirements are still satisfied.
+
 ## Operating Pattern
 For every documentation-related request:
 1. Identify the intent using the cues below.
