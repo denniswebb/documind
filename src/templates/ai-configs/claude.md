@@ -2,6 +2,14 @@
 
 DocuMind manages documentation through the `/document` command family. Claude agents should follow the behaviors defined in [`src/core/commands.md`](../../core/commands.md) and the mirrored runtime reference at `.documind/core/commands.md` when installed locally.
 
+## Automatic Documentation Generation Overview
+
+DocuMind's **Automatic Documentation Generation** pipeline still begins with environment detection before orchestrating `/document` commands. When operating in a local checkout:
+
+- Run `node .documind/scripts/detect-documind.js ai-report` to confirm the workspace is configured for dual-purpose generation and to discover the `.documind/scripts/ai-orchestrator.js` entry point.
+- If detection succeeds, execute the orchestrator with the desired intent (e.g., `node .documind/scripts/ai-orchestrator.js bootstrap`). Claude should always echo the command that was executed so developers can follow the workflow manually when needed.
+- When detection fails, describe the fallback steps the user should take and proceed by drafting the requested deliverables manually while maintaining the dual-purpose generation standard.
+
 ## Unified Workflow Pattern
 For every request that maps to a `/document` intent, follow this consistent structure:
 1. **Classify the intent** using the patterns below.
@@ -86,4 +94,4 @@ Each command entry lists natural language cues Claude should recognize, followed
 - Clearly state when manual drafting was required and provide actionable suggestions for installing or updating DocuMind if appropriate.
 - Encourage users to consult `.documind/core/commands.md` for the definitive command semantics when working locally.
 
-**Core principle**: Deliver comprehensive, dual-purpose documentation experiences without relying on local Node scripts. Let the `/document` commands and documented behaviors drive every interaction.
+**Core principle**: Deliver comprehensive, dual-purpose documentation experiences without relying on local Node scripts for bespoke flows. Let the `/document` commands and documented behaviors drive every interaction, and reference the orchestrator workflow above whenever Automatic Documentation Generation can run end-to-end.
