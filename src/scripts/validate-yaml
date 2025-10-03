@@ -80,11 +80,81 @@ validate_yaml_basic() {
     # Try to parse with basic tools
     local errors=()
     local warnings=()
+    local method="basic"
+    local parser_success="false"
 
-    # Check for basic YAML syntax issues
-    if ! python3 -c "import yaml; yaml.safe_load(open('$file'))" 2>/dev/null; then
-        if ! ruby -ryaml -e "YAML.load_file('$file')" 2>/dev/null; then
-            errors+=("Invalid YAML syntax")
+    # Prefer Node.js + yaml package for syntax validation when available
+    if command_exists node; then
+        local node_output=""
+        if node_output=$(
+            cat <<'NODE' | node --input-type=module - "$file" 2>&1
+            import fs from 'fs';
+            import process from 'process';
+
+            const filePath = process.argv[2];
+
+            let yaml;
+            try {
+                yaml = await import('yaml');
+            } catch (error) {
+                console.error(`MODULE_MISSING:${error.message}`);
+                process.exit(3);
+            }
+
+            let fileContent;
+            try {
+                fileContent = fs.readFileSync(filePath, 'utf8');
+            } catch (error) {
+                console.error(`READ_ERROR:${error.message}`);
+                process.exit(3);
+            }
+
+            try {
+                yaml.parse(fileContent);
+            } catch (error) {
+                const message = (error && error.message) ? error.message.replace(/\s+/g, ' ').trim() : 'Invalid YAML syntax';
+                console.error(`PARSE_ERROR:${message}`);
+                process.exit(1);
+            }
+
+            process.exit(0);
+NODE
+        ); then
+            parser_success="true"
+            method="nodejs"
+        else
+            local node_exit=$?
+            case "$node_exit" in
+                1)
+                    method="nodejs"
+                    local node_message="${node_output#PARSE_ERROR:}"
+                    if [[ "$node_message" == "$node_output" || -z "$node_message" ]]; then
+                        node_message="Invalid YAML syntax"
+                    fi
+                    errors+=("$node_message")
+                    ;;
+                3)
+                    log_debug "Node YAML parser unavailable: $node_output"
+                    ;;
+                *)
+                    log_debug "Node YAML parser error (exit $node_exit): $node_output"
+                    ;;
+            esac
+        fi
+    fi
+
+    # Fallback to Python/Ruby helpers when Node parser is unavailable
+    if [[ "$parser_success" != "true" && ${#errors[@]} -eq 0 ]]; then
+        if ! python3 -c "import yaml; yaml.safe_load(open('$file'))" 2>/dev/null; then
+            if ruby -ryaml -e "YAML.load_file('$file')" 2>/dev/null; then
+                parser_success="true"
+                method="ruby"
+            else
+                errors+=("Invalid YAML syntax")
+            fi
+        else
+            parser_success="true"
+            method="python"
         fi
     fi
 
@@ -111,23 +181,23 @@ validate_yaml_basic() {
     [[ ${#errors[@]} -gt 0 ]] && status="invalid"
 
     if [[ "$json_output" == "true" ]]; then
-        local errors_json=""
-        local warnings_json=""
+        local errors_json="[]"
+        local warnings_json="[]"
 
         if [[ ${#errors[@]} -gt 0 ]]; then
-            errors_json=$(printf '"%s",' "${errors[@]}" | sed 's/,$//')
+            errors_json=$(printf '%s\n' "${errors[@]}" | jq -R . | jq -s .)
         fi
 
         if [[ ${#warnings[@]} -gt 0 ]]; then
-            warnings_json=$(printf '"%s",' "${warnings[@]}" | sed 's/,$//')
+            warnings_json=$(printf '%s\n' "${warnings[@]}" | jq -R . | jq -s .)
         fi
 
         jq -n \
             --arg file "$file" \
             --arg status "$status" \
-            --arg method "basic" \
-            --argjson errors "[$errors_json]" \
-            --argjson warnings "[$warnings_json]" \
+            --arg method "$method" \
+            --argjson errors "$errors_json" \
+            --argjson warnings "$warnings_json" \
             '{
                 file: $file,
                 status: $status,
