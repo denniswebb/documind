@@ -634,13 +634,13 @@ AFTER INSTALLATION:
   /document update [section]      # Update existing sections
   /document analyze [integration] # Document external integrations
   /document [free-form request]   # Ask anything! (Recommended)
+  Tip: Run /document bootstrap, expand, update, and analyze directly with your AI assistant for full documentation generation.
 
 BASH UTILITIES:
   npm run token-count [file]      # Count tokens in files
   npm run validate-yaml [file]    # Validate YAML manifests
   npm run split-markdown [file]   # Split large markdown files
   npm run check-deps              # Check system dependencies
-  npm run generate-docs [mode]    # Generate documentation
   npm run budget-monitor [dir]    # Monitor token budgets
 
 NATURAL LANGUAGE EXAMPLES:
@@ -1013,7 +1013,6 @@ https://github.com/denniswebb/documind
       'validate-yaml',
       'split-markdown',
       'check-dependencies',
-      'generate-docs',
       'budget-monitor'
     ];
 
